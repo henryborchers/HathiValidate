@@ -86,9 +86,10 @@ from lxml import etree
 
 from hathi_validate import result
 from hathi_validate import xml_schemes
+import re
 
 DIRECTORY_REGEX = "^\d+(p\d+(_\d+)?)?(v\d+(_\d+)?)?(i\d+(_\d+)?)?(m\d+(_\d+)?)?$"
-
+DATE_REGEX = re.compile("^(\d{4})-(\d{2})-(\d{2})T(\d{2})\:(\d{2})(\:\d{2})?-(\d{2}):(\d{2})$")
 
 class ValidationError(Exception):
     pass
@@ -151,11 +152,15 @@ def find_extra_subdirectory(path) -> result.ResultSummary:
 
 
 def parse_checksum(line):
-    md5_hash, raw_filename = line.strip().split(" ")
+    chunks = line.strip().split(" ")
+    md5_hash = chunks[0]
+    raw_filename = chunks[-1]
     if len(md5_hash) != 32:
         raise InvalidChecksum("Invalid Checksum")
-    assert raw_filename[0] == "*"
-    filename = raw_filename[1:]
+    if raw_filename[0] == "*":  # For file names listed with an asterisk before them in the checksum file
+        filename = raw_filename[1:]
+    else:
+        filename = raw_filename
     return md5_hash, filename
 
 
@@ -265,8 +270,15 @@ def find_errors_meta(filename, path):
 
     def find_capture_date_errors(metadata):
         capture_date = metadata["capture_date"]
+
         if not isinstance(capture_date, datetime.datetime):
-            yield "Invalid YAML capture_date {}".format(capture_date)
+            if isinstance(capture_date, str):
+                # Just because the parser wasn't able to convert into a datetime object doesn't mean it's not valid per se.
+                # It can also be a matched to a regex.
+                if DATE_REGEX.fullmatch(capture_date) is None:
+                    yield "Invalid YAML capture_date {}".format(capture_date)
+            else:
+                yield "Invalid YAML data type for in capture_date"
 
     def find_capture_agent_errors(metadata):
         capture_agent = metadata["capture_agent"]
