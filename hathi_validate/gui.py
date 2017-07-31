@@ -3,11 +3,11 @@ import logging
 import os
 import threading
 
-from script_gui import SimpleGui, AbsScript
-from script_gui.script_signals import SignalTypes
+from script_gui import SimpleGui, AbsScript # type: ignore
+from script_gui.script_signals import SignalTypes # type: ignore
 from hathi_validate import package, process, configure_logging, report
 import hathi_validate
-from PyQt5 import QtWidgets
+from PyQt5 import QtWidgets  # type: ignore
 
 
 def get_parser():
