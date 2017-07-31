@@ -119,7 +119,7 @@ b7bfccd51c8eed646d767aac9246720b *meta.yml
 """
 
 
-dummy_marc ="""<record xmlns="http://www.loc.gov/MARC21/slim" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.loc.gov/MARC21/slim http://www.loc.gov/standards/marcxml/schema/MARC21slim.xsd">
+dummy_marc = """<record xmlns="http://www.loc.gov/MARC21/slim" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.loc.gov/MARC21/slim http://www.loc.gov/standards/marcxml/schema/MARC21slim.xsd">
   <leader>01010cam a2200229Ia 4500</leader>
   <controlfield tag="001">7215682</controlfield>
   <controlfield tag="005">20140506141722.0</controlfield>
@@ -197,17 +197,19 @@ dummy_marc ="""<record xmlns="http://www.loc.gov/MARC21/slim" xmlns:xsi="http://
 </record>
 """
 
-@pytest.fixture()
+
 def checksum_file(tmpdir):
     p = tmpdir.mkdir("tmp").join("checksum.md5")
     p.write(dummy_checksum)
     return p
+
 
 @pytest.fixture()
 def marc_file(tmpdir):
     p = tmpdir.mkdir("tmp").join("marc.xml")
     p.write(dummy_marc)
     return p
+
 
 @pytest.mark.skip(reason="not ready yet")
 def test_find_failing_checksums(checksum_file):
@@ -220,6 +222,12 @@ def test_parse_checksum():
     md5_hash, file_name = process.parse_checksum("61d005c4c34772f5d57566e6ca5f6a8e *00000045.tif")
     assert md5_hash == "61d005c4c34772f5d57566e6ca5f6a8e"
     assert file_name == "00000045.tif"
+
+def test_parse_checksum_with_two_spaces():
+    md5_hash, file_name = process.parse_checksum("D4AB65AE47A6E57194D6847B22DCB14C  00000001.jp2")
+    assert md5_hash == "D4AB65AE47A6E57194D6847B22DCB14C"
+    assert file_name == "00000001.jp2"
+
 
 def test_validate_marc(marc_file):
     print("Marc file = {}".format(str(marc_file)))
