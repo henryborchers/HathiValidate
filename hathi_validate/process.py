@@ -81,6 +81,7 @@ import hashlib
 import logging
 import os
 
+import itertools
 import yaml
 from lxml import etree
 
@@ -90,6 +91,7 @@ import re
 
 DIRECTORY_REGEX = "^\d+(p\d+(_\d+)?)?(v\d+(_\d+)?)?(i\d+(_\d+)?)?(m\d+(_\d+)?)?$"
 DATE_REGEX = re.compile("^(\d{4})-(\d{2})-(\d{2})T(\d{2})\:(\d{2})(\:\d{2})?-(\d{2}):(\d{2})$")
+
 
 class ValidationError(Exception):
     pass
@@ -176,6 +178,13 @@ def calculate_md5(filename, chunk_size=8192):
         return md5.hexdigest()
 
 
+def is_same_hash(*hashes) -> bool:
+    for hash_value_a, hash_value_b, in itertools.combinations(hashes, 2):
+        if hash_value_a.lower() != hash_value_b.lower():
+            return False
+    return True
+
+
 def find_failing_checksums(path, report) -> result.ResultSummary:
     """
         validate that the checksums in the *.fil file match
@@ -196,8 +205,11 @@ def find_failing_checksums(path, report) -> result.ResultSummary:
             file_path = os.path.join(path, filename)
             try:
                 file_md5_hash = calculate_md5(filename=file_path)
-                if file_md5_hash != report_md5_hash:
-                    report_builder.add_error("Checksum listed in \"{}\" doesn't match for \"{}\"".format(os.path.basename(report), filename))
+                if not is_same_hash(file_md5_hash, report_md5_hash):
+                    logger.debug('Hash mismatch for "{}". (Actual ({}): expected ({}))'.format(file_path, file_md5_hash,
+                                                                                               report_md5_hash))
+                    report_builder.add_error(
+                        "Checksum listed in \"{}\" doesn't match for \"{}\"".format(os.path.basename(report), filename))
                 else:
                     logger.info("{} successfully matches md5 hash in {}".format(filename, os.path.basename(report)))
             except FileNotFoundError as e:
