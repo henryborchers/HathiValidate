@@ -115,7 +115,7 @@ pipeline {
                                 runner.env = "mypy"
                                 runner.windows = false
                                 runner.stash = "Source"
-                                runner.label = "!Windows"
+                                runner.label = "Windows"
                                 runner.post = {
                                     junit 'mypy.xml'
                                 }
