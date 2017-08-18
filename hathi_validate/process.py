@@ -1,81 +1,80 @@
-"""
-Original VB CODE
+# Original VB CODE:
+#
+# SetText(lblStatus, folderName)
+#
+# If Form1.stopping = True Then Exit Sub
+#
+# 'get base object name which is the folder name
+# Dim baseName As String = Path.GetFileName(folderName)
+# SetText(txtStatus, String.Format("Object ID: {0}", baseName))
+#
+# Dim m As Match = Regex.Match(baseName, ObjectIdRegex)
+# If m.Success = False Then
+#   SetText(txtStatus, String.Format("   ERROR: Base folder name '{0}' does not match naming conventions for ObjectIDs ", baseName))
+# Else
+#   SetText(txtStatus, String.Format("   OK: Base folder name '{0}' is a valid ObjectID ", baseName))
+# End If
+#
+#
+# SetText(txtStatus, New String("-", 20))
+# SetText(txtStatus, "   Checking for expected root files and folders:")
+# 'check whether expected files exist
+# CheckFileExists(folderName, "checksum.md5")
+# CheckFileExists(folderName, "marc.xml")
+# CheckFileExists(folderName, "meta.yml")
+#
+# 'make sure folder does not contain any subfolders
+# Dim subfolders() As String = Directory.GetDirectories(folderName)
+# If subfolders.Count > 0 Then
+#   SetText(txtStatus, String.Format("      ERROR: The base folder '{0}' contains subfolders. ", baseName))
+# Else
+#   SetText(txtStatus, String.Format("      OK: The base folder '{0}' has no subfolders", baseName))
+# End If
+#
+#
+# 'validate that the checksums in the *.fil file match
+# SetText(txtStatus, New String("-", 20))
+# SetText(txtStatus, "   Validating Checksum File 'checksum.md5'")
+# CheckChecksums(folderName)
+#
+# 'validate that the MARC file is valid
+# SetText(txtStatus, New String("-", 20))
+# SetText(txtStatus, "   Validating MARC XML File 'marc.xml'")
+#
+# Dim xmlSet As New XmlReaderSettings()
+# xmlSet.CheckCharacters = True
+# xmlSet.ConformanceLevel = ConformanceLevel.Document
+# xmlSet.Schemas.Add("http://www.loc.gov/MARC21/slim", "http://www.loc.gov/standards/marcxml/schema/MARC21slim.xsd")
+# xmlSet.ValidationFlags = XmlSchemaValidationFlags.ProcessIdentityConstraints Or XmlSchemaValidationFlags.ProcessSchemaLocation Or XmlSchemaValidationFlags.ReportValidationWarnings
+#
+# xmlSet.ValidationType = ValidationType.Schema
+#
+# CheckXML(folderName, "marc.xml", xmlSet)
+#
+# 'validate other xml files, currently ALTO
+# SetText(txtStatus, New String("-", 20))
+# SetText(txtStatus, String.Format("   Validating all other XML files"))
+#
+# xmlSet.Schemas.Add("http://www.loc.gov/standards/alto/ns-v2#", "http://www.loc.gov/standards/alto/alto.xsd")
+# xmlSet.Schemas.Add("http://www.w3.org/1999/xlink", "http://www.loc.gov/standards/xlink/xlink.xsd")
+#
+# Dim allXML() As String = Directory.GetFiles(folderName, "*.xml")
+#
+# For Each xfile In allXML
+#   If Path.GetFileName(xfile).ToLower <> "marc.xml" Then
+#     SetText(txtStatus, String.Format("   Validating XML file '{0}'", Path.GetFileName(xfile)))
+#     CheckXML(xfile, xmlSet)
+#   End If
+#   Application.DoEvents()
+# Next
+#
+# 'Validate that the meta.yml file is valid; could also validate that the values are correct by comparing with the images
+# SetText(txtStatus, New String("-", 20))
+# SetText(txtStatus, "   Validating 'meta.yml' file")
+# CheckYaml(folderName)
+#
+# Application.DoEvents()
 
-    SetText(lblStatus, folderName)
-
-    If Form1.stopping = True Then Exit Sub
-
-    'get base object name which is the folder name
-    Dim baseName As String = Path.GetFileName(folderName)
-    SetText(txtStatus, String.Format("Object ID: {0}", baseName))
-
-    Dim m As Match = Regex.Match(baseName, ObjectIdRegex)
-    If m.Success = False Then
-      SetText(txtStatus, String.Format("   ERROR: Base folder name '{0}' does not match naming conventions for ObjectIDs ", baseName))
-    Else
-      SetText(txtStatus, String.Format("   OK: Base folder name '{0}' is a valid ObjectID ", baseName))
-    End If
-
-
-    SetText(txtStatus, New String("-", 20))
-    SetText(txtStatus, "   Checking for expected root files and folders:")
-    'check whether expected files exist
-    CheckFileExists(folderName, "checksum.md5")
-    CheckFileExists(folderName, "marc.xml")
-    CheckFileExists(folderName, "meta.yml")
-
-    'make sure folder does not contain any subfolders
-    Dim subfolders() As String = Directory.GetDirectories(folderName)
-    If subfolders.Count > 0 Then
-      SetText(txtStatus, String.Format("      ERROR: The base folder '{0}' contains subfolders. ", baseName))
-    Else
-      SetText(txtStatus, String.Format("      OK: The base folder '{0}' has no subfolders", baseName))
-    End If
-
-
-    'validate that the checksums in the *.fil file match
-    SetText(txtStatus, New String("-", 20))
-    SetText(txtStatus, "   Validating Checksum File 'checksum.md5'")
-    CheckChecksums(folderName)
-
-    'validate that the MARC file is valid
-    SetText(txtStatus, New String("-", 20))
-    SetText(txtStatus, "   Validating MARC XML File 'marc.xml'")
-
-    Dim xmlSet As New XmlReaderSettings()
-    xmlSet.CheckCharacters = True
-    xmlSet.ConformanceLevel = ConformanceLevel.Document
-    xmlSet.Schemas.Add("http://www.loc.gov/MARC21/slim", "http://www.loc.gov/standards/marcxml/schema/MARC21slim.xsd")
-    xmlSet.ValidationFlags = XmlSchemaValidationFlags.ProcessIdentityConstraints Or XmlSchemaValidationFlags.ProcessSchemaLocation Or XmlSchemaValidationFlags.ReportValidationWarnings
-
-    xmlSet.ValidationType = ValidationType.Schema
-
-    CheckXML(folderName, "marc.xml", xmlSet)
-
-    'validate other xml files, currently ALTO
-    SetText(txtStatus, New String("-", 20))
-    SetText(txtStatus, String.Format("   Validating all other XML files"))
-
-    xmlSet.Schemas.Add("http://www.loc.gov/standards/alto/ns-v2#", "http://www.loc.gov/standards/alto/alto.xsd")
-    xmlSet.Schemas.Add("http://www.w3.org/1999/xlink", "http://www.loc.gov/standards/xlink/xlink.xsd")
-
-    Dim allXML() As String = Directory.GetFiles(folderName, "*.xml")
-
-    For Each xfile In allXML
-      If Path.GetFileName(xfile).ToLower <> "marc.xml" Then
-        SetText(txtStatus, String.Format("   Validating XML file '{0}'", Path.GetFileName(xfile)))
-        CheckXML(xfile, xmlSet)
-      End If
-      Application.DoEvents()
-    Next
-
-    'Validate that the meta.yml file is valid; could also validate that the values are correct by comparing with the images
-    SetText(txtStatus, New String("-", 20))
-    SetText(txtStatus, "   Validating 'meta.yml' file")
-    CheckYaml(folderName)
-
-    Application.DoEvents()
-"""
 import datetime
 import hashlib
 import logging
@@ -114,8 +113,8 @@ class InvalidChecksum(ValidationError):
 
 
 def find_missing_files(path: str) -> result.ResultSummary:
-    """
-        check for expected files exist on the path
+    """check for expected files exist on the path
+
     Args:
         path:
 
@@ -138,8 +137,8 @@ def find_missing_files(path: str) -> result.ResultSummary:
 
 
 def find_extra_subdirectory(path) -> result.ResultSummary:
-    """
-        Check path for any subdirectories
+    """Check path for any subdirectories
+
     Args:
         path:
 
@@ -186,14 +185,13 @@ def is_same_hash(*hashes) -> bool:
 
 
 def find_failing_checksums(path, report) -> result.ResultSummary:
-    """
-        validate that the checksums in the *.fil file match
+    """validate that the checksums in the .fil file match
 
     Args:
         path:
         report:
 
-    Returns:
+    Returns: Error report
 
     """
 

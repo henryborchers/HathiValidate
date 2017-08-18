@@ -1,6 +1,6 @@
 import abc
 import typing
-from collections.abc import Iterable
+import collections.abc
 
 
 class Result:
@@ -17,7 +17,7 @@ class Result:
         return "{}[{}]{}".format(Result.__name__, self.result_type, message)
 
 
-class ResultSummary(Iterable):
+class ResultSummary(collections.abc.Iterable):  # type: ignore
     def __init__(self):
         self.results = []
         self.source = None
