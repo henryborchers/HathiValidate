@@ -113,7 +113,7 @@ pipeline {
                             script {
                                 def runner = new Tox(this)
                                 runner.env = "mypy"
-                                runner.windows = false
+                                runner.windows = true
                                 runner.stash = "Source"
                                 runner.label = "Windows"
                                 runner.post = {
