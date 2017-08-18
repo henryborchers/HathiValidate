@@ -17,7 +17,7 @@ class Result:
         return "{}[{}]{}".format(Result.__name__, self.result_type, message)
 
 
-class ResultSummary(collections.abc.Iterable):
+class ResultSummary(collections.abc.Iterable):  # type: ignore
     def __init__(self):
         self.results = []
         self.source = None
