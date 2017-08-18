@@ -14,7 +14,7 @@ pipeline {
 //      booleanParam(name: "STATIC_ANALYSIS", defaultValue: true, description: "Run static analysis tests")
         booleanParam(name: "PACKAGE", defaultValue: true, description: "Create a Packages")
         booleanParam(name: "DEPLOY", defaultValue: false, description: "Deploy SCCM")
-        booleanParam(name: "BUILD_DOCS", defaultValue: true, description: "Build documentation")
+//        booleanParam(name: "BUILD_DOCS", defaultValue: true, description: "Build documentation")
         booleanParam(name: "UPDATE_DOCS", defaultValue: false, description: "Update the documentation")
         string(name: 'URL_SUBFOLDER', defaultValue: "hathi_validate", description: 'The directory that the docs should be saved under')
     }
@@ -127,33 +127,6 @@ pipeline {
             }
 
         }
-//        stage("Documentation") {
-//            agent any
-//            when {
-//                expression { params.BUILD_DOCS == true }
-//            }
-//            steps {
-//                deleteDir()
-//                unstash "Source"
-//                withEnv(['PYTHON=${env.PYTHON3}']) {
-//                    sh """
-//                  ${env.PYTHON3} -m venv .env
-//                  . .env/bin/activate
-//                  pip install --upgrade pip
-//                  pip install -r requirements.txt
-//                  cd docs && make html
-//
-//                  """
-//                    stash includes: '**', name: "Documentation source", useDefaultExcludes: false
-//                }
-//            }
-//            post {
-//                success {
-//                    sh 'tar -czvf sphinx_html_docs.tar.gz -C docs/build/html .'
-//                    archiveArtifacts artifacts: 'sphinx_html_docs.tar.gz'
-//                }
-//            }
-//        }
         stage("Packaging") {
             when {
                 expression { params.PACKAGE == true }
@@ -210,10 +183,11 @@ pipeline {
                             }
                         },
                         "Source Release": {
-                            deleteDir()
-                            unstash "Source"
-                            sh "${env.PYTHON3} setup.py sdist"
-                            archiveArtifacts artifacts: "dist/**", fingerprint: true
+                            createSourceRelease(env.PYTHON3, "Source")
+//                            deleteDir()
+//                            unstash "Source"
+//                            sh "${env.PYTHON3} setup.py sdist"
+//                            archiveArtifacts artifacts: "dist/**", fingerprint: true
                         }
                 )
             }
