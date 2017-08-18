@@ -11,10 +11,8 @@ pipeline {
         string(name: "PROJECT_NAME", defaultValue: "Hathi Validate", description: "Name given to the project")
         booleanParam(name: "UNIT_TESTS", defaultValue: true, description: "Run Automated Unit Tests")
         booleanParam(name: "ADDITIONAL_TESTS", defaultValue: true, description: "Run additional tests")
-//      booleanParam(name: "STATIC_ANALYSIS", defaultValue: true, description: "Run static analysis tests")
         booleanParam(name: "PACKAGE", defaultValue: true, description: "Create a Packages")
         booleanParam(name: "DEPLOY", defaultValue: false, description: "Deploy SCCM")
-//        booleanParam(name: "BUILD_DOCS", defaultValue: true, description: "Build documentation")
         booleanParam(name: "UPDATE_DOCS", defaultValue: false, description: "Update the documentation")
         string(name: 'URL_SUBFOLDER', defaultValue: "hathi_validate", description: 'The directory that the docs should be saved under')
     }
@@ -64,25 +62,6 @@ pipeline {
                             runner.run()
                         }
                     }
-//                        "Windows": {
-//                            node(label: 'Windows') {
-//                                deleteDir()
-//                                unstash "Source"
-//                                bat "${env.TOX}  -e jenkins"
-//                                junit 'reports/junit-*.xml'
-//
-//                            }
-//                        },
-//                        "Linux": {
-//                            node(label: "!Windows") {
-//                                deleteDir()
-//                                unstash "Source"
-//                                withEnv(["PATH=${env.PYTHON3}/..:${env.PATH}"]) {
-//                                    sh "${env.TOX}  -e jenkins"
-//                                }
-//                                junit 'reports/junit-*.xml'
-//                            }
-//                        }
                 )
             }
         }
@@ -160,7 +139,6 @@ pipeline {
                                 deleteDir()
                                 git url: 'https://github.com/UIUCLibrary/ValidateMSI.git'
                                 unstash "msi"
-                                // validate_msi.py
 
                                 bat """
                           ${env.PYTHON3} -m venv .env
@@ -184,10 +162,6 @@ pipeline {
                         },
                         "Source Release": {
                             createSourceRelease(env.PYTHON3, "Source")
-//                            deleteDir()
-//                            unstash "Source"
-//                            sh "${env.PYTHON3} setup.py sdist"
-//                            archiveArtifacts artifacts: "dist/**", fingerprint: true
                         }
                 )
             }
@@ -210,9 +184,6 @@ pipeline {
             }
             steps {
                 deployStash("msi", "${env.SCCM_UPLOAD_FOLDER}")
-//                deleteDir()
-//                unstash "msi"
-//                sh "rsync -rv ./ ${env.SCCM_UPLOAD_FOLDER}/"
             }
             post {
                 success {
@@ -223,17 +194,6 @@ pipeline {
                         writeFile file: "deployment_request.txt", text: deployment_request
                         archiveArtifacts artifacts: "deployment_request.txt"
                     }
-//                    git url: 'https://github.com/UIUCLibrary/sccm_deploy_message_generator.git'
-//                    unstash "Deployment"
-//                    sh """${env.PYTHON3} -m venv .env
-//                      . .env/bin/activate
-//                      pip install --upgrade pip
-//                      pip install setuptools --upgrade
-//                      python setup.py install
-//                      deploymessage deployment.yml --save=deployment_request.txt
-//                  """
-//                    archiveArtifacts artifacts: "deployment_request.txt"
-//                    echo(readFile('deployment_request.txt'))
                 }
             }
         }
