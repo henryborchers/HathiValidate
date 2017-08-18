@@ -113,8 +113,8 @@ class InvalidChecksum(ValidationError):
 
 
 def find_missing_files(path: str) -> result.ResultSummary:
-    """
-        check for expected files exist on the path
+    """check for expected files exist on the path
+
     Args:
         path:
 
@@ -137,8 +137,8 @@ def find_missing_files(path: str) -> result.ResultSummary:
 
 
 def find_extra_subdirectory(path) -> result.ResultSummary:
-    """
-        Check path for any subdirectories
+    """Check path for any subdirectories
+
     Args:
         path:
 
@@ -185,14 +185,13 @@ def is_same_hash(*hashes) -> bool:
 
 
 def find_failing_checksums(path, report) -> result.ResultSummary:
-    """
-        validate that the checksums in the *.fil file match
+    """validate that the checksums in the .fil file match
 
     Args:
         path:
         report:
 
-    Returns:
+    Returns: Error report
 
     """
 
