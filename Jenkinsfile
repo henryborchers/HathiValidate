@@ -10,6 +10,7 @@ pipeline {
     parameters {
         string(name: "PROJECT_NAME", defaultValue: "Hathi Validate", description: "Name given to the project")
         booleanParam(name: "UNIT_TESTS", defaultValue: true, description: "Run Automated Unit Tests")
+        booleanParam(name: "ADDITIONAL_TESTS", defaultValue: true, description: "Run additional tests")
 //      booleanParam(name: "STATIC_ANALYSIS", defaultValue: true, description: "Run static analysis tests")
         booleanParam(name: "PACKAGE", defaultValue: true, description: "Create a Packages")
         booleanParam(name: "DEPLOY", defaultValue: false, description: "Deploy SCCM")
