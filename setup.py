@@ -7,7 +7,7 @@ setup(
     version=hathi_validate.__version__,
     packages=['hathi_validate'],
     url=hathi_validate.__url__,
-    license='',
+    license='University of Illinois/NCSA Open Source License',
     test_suite="tests",
     setup_requires=['pytest-runner'],
     install_requires=["lxml", "PyYAML"],
