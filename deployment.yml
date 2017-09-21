@@ -1,0 +1,20 @@
+deployer:
+  name: Scott
+package:
+  filename: DS Hathi Trust Validate-amd64.msi
+  path: \\files.library.illinois.edu\groupfiles\Digital Content Creation\SCCM Upload\
+maintainer:
+  name: Henry Borchers
+  email: hborcher@illinois.edu
+deployment:
+  hostnames:
+    - LIBSTFDCC02
+    - LIBSTFDCC03
+    - LIBSTFDCC04
+    - LIBSTFDCC06
+    - LIBSTFDCC08
+    - LIBSTFDCC09
+    - LIBSTFDCC013
+    - LIBSTFPRE04
+    - LIBSTFPRE13
+    - LIBLAPPRE03
