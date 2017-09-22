@@ -166,6 +166,15 @@ pipeline {
                 )
             }
         }
+        stage("master branch stuff"){
+            agent any
+            when{
+                branch 'master'
+            }
+            steps{
+                echo "I'm running under the master branch"
+            }
+        }
         stage("Deploy - Staging") {
             agent any
             when {
