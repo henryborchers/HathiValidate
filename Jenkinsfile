@@ -179,7 +179,7 @@ pipeline {
             }
             steps {
                 echo "I'm logging into Devpi"
-                bat "where devpi"
+                bat "devpi use http://devpy.library.illinois.edu"
                 withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
                     bat "whoami"
                     bat "devpi login $DEVPI_USERNAME --password=$DEVPI_PASSWORD"
