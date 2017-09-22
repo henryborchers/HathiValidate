@@ -14,7 +14,7 @@ pipeline {
         booleanParam(name: "ADDITIONAL_TESTS", defaultValue: true, description: "Run additional tests")
         booleanParam(name: "PACKAGE", defaultValue: true, description: "Create a Packages")
         booleanParam(name: "DEPLOY_SCCM", defaultValue: false, description: "Deploy SCCM")
-        booleanParam(name: "DEPLOY_DEVPI", defaultValue: false, description: "Deploy to devpi on http://devpy.library.illinois.edu/hborcher/${env.BRANCH_NAME}")
+        booleanParam(name: "DEPLOY_DEVPI", defaultValue: true, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
         booleanParam(name: "UPDATE_DOCS", defaultValue: false, description: "Update the documentation")
         string(name: 'URL_SUBFOLDER', defaultValue: "hathi_validate", description: 'The directory that the docs should be saved under')
     }
@@ -198,25 +198,6 @@ pipeline {
 
             }
         }
-        stage("master branch stuff") {
-            agent any
-            when {
-                branch 'master'
-            }
-            steps {
-                echo "I'm running under the master branch"
-            }
-        }
-        stage("Dev branch stuff") {
-            agent any
-            when {
-                branch 'dev'
-            }
-            steps {
-                echo "I'm running the ${env.BRANCH_NAME}"
-            }
-        }
-
         stage("Deploy - Staging") {
             agent any
             when {
