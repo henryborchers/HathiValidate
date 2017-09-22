@@ -167,9 +167,8 @@ pipeline {
                 )
             }
         }
-        steps("Deploying to Devpi"){
+        stage("Deploying to Devpi") {
             agent any
-
             when {
                 expression { params.DEPLOY_DEVPI== true }
             }
