@@ -167,6 +167,16 @@ pipeline {
                 )
             }
         }
+        steps("Deploying to Devpi"){
+            agent any
+
+            when {
+                expression { params.DEPLOY_DEVPI== true }
+            }
+            steps {
+                echo "I'm loggin into Devpi"
+            }
+        }
         stage("master branch stuff"){
             agent any
             when{
