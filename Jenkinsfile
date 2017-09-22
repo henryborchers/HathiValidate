@@ -1,4 +1,5 @@
-@Library("ds-utils") // Uses https://github.com/UIUCLibrary/Jenkins_utils
+@Library("ds-utils")
+// Uses https://github.com/UIUCLibrary/Jenkins_utils
 import org.ds.*
 
 pipeline {
@@ -37,32 +38,32 @@ pipeline {
             }
             steps {
                 parallel(
-                    "Windows": {
-                        script {
-                            def runner = new Tox(this)
-                            runner.env = "pytest"
-                            runner.windows = true
-                            runner.stash = "Source"
-                            runner.label = "Windows"
-                            runner.post = {
-                                junit 'reports/junit-*.xml'
+                        "Windows": {
+                            script {
+                                def runner = new Tox(this)
+                                runner.env = "pytest"
+                                runner.windows = true
+                                runner.stash = "Source"
+                                runner.label = "Windows"
+                                runner.post = {
+                                    junit 'reports/junit-*.xml'
+                                }
+                                runner.run()
                             }
-                            runner.run()
-                        }
-                    },
-                    "Linux": {
-                        script {
-                            def runner = new Tox(this)
-                            runner.env = "pytest"
-                            runner.windows = false
-                            runner.stash = "Source"
-                            runner.label = "!Windows"
-                            runner.post = {
-                                junit 'reports/junit-*.xml'
+                        },
+                        "Linux": {
+                            script {
+                                def runner = new Tox(this)
+                                runner.env = "pytest"
+                                runner.windows = false
+                                runner.stash = "Source"
+                                runner.label = "!Windows"
+                                runner.post = {
+                                    junit 'reports/junit-*.xml'
+                                }
+                                runner.run()
                             }
-                            runner.run()
                         }
-                    }
                 )
             }
         }
@@ -178,15 +179,19 @@ pipeline {
             }
             steps {
                 echo "I'm logging into Devpi"
+                withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+
+                    bat "devpi login %USERNAME% --password %PASSWORD%"
+                }
 
             }
         }
-        stage("master branch stuff"){
+        stage("master branch stuff") {
             agent any
-            when{
+            when {
                 branch 'master'
             }
-            steps{
+            steps {
                 echo "I'm running under the master branch"
             }
         }
@@ -200,7 +205,7 @@ pipeline {
             }
         }
 
-            stage("Deploy - Staging") {
+        stage("Deploy - Staging") {
             agent any
             when {
                 expression { params.DEPLOY_SCCM == true && params.PACKAGE == true }
@@ -221,9 +226,9 @@ pipeline {
             }
             post {
                 success {
-                    script{
+                    script {
                         unstash "Source"
-                        def  deployment_request = requestDeploy this, "deployment.yml"
+                        def deployment_request = requestDeploy this, "deployment.yml"
                         echo deployment_request
                         writeFile file: "deployment_request.txt", text: deployment_request
                         archiveArtifacts artifacts: "deployment_request.txt"
