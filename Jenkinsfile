@@ -178,12 +178,14 @@ pipeline {
                 expression { params.DEPLOY_DEVPI == true }
             }
             steps {
-                echo "I'm logging into Devpi"
+                deleteDir()
+                unstash "Source"
                 bat "devpi use http://devpy.library.illinois.edu"
                 withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
                     bat "devpi login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
                     bat "devpi use /${DEVPI_USERNAME}/${env.BRANCH_NAME}"
                     bat "devpi upload"
+                    bat "devpi test HathiValidate"
                 }
 
             }
