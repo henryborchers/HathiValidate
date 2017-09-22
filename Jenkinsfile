@@ -222,7 +222,7 @@ pipeline {
 
                         } catch (exc) {
                             echo "Unable to upload to devpi with docs. Trying without"
-                            bat "devpi upload "
+                            bat "devpi upload"
                         }
                     }
                     bat "devpi test HathiValidate"
