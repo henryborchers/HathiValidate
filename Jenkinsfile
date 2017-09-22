@@ -175,7 +175,17 @@ pipeline {
                 echo "I'm running under the master branch"
             }
         }
-        stage("Deploy - Staging") {
+        stage("Dev branch stuff") {
+            agent any
+            when {
+                branch 'dev'
+            }
+            steps {
+                echo "I'm running under the dev branch"
+            }
+        }
+
+            stage("Deploy - Staging") {
             agent any
             when {
                 expression { params.DEPLOY == true && params.PACKAGE == true }
