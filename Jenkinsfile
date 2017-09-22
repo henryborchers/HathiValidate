@@ -181,7 +181,7 @@ pipeline {
                 branch 'dev'
             }
             steps {
-                echo "I'm running under the dev branch"
+                echo "I'm running the ${env.BRANCH_NAME}"
             }
         }
 
