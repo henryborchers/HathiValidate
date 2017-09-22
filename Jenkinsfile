@@ -178,8 +178,8 @@ pipeline {
                 expression { params.DEPLOY_DEVPI == true }
             }
             steps {
-                echo "I'm logging into Devpi"
                 withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
+                    echo "I'm logging into Devpi"
                     bat "whoami"
                     bat "devpi login $DEVPI_USERNAME --password=$DEVPI_PASSWORD"
                 }
