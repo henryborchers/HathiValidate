@@ -185,7 +185,13 @@ pipeline {
                     bat "devpi login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
                     bat "devpi use /${DEVPI_USERNAME}/${env.BRANCH_NAME}"
                     script {
-                        bat "devpi upload --with-docs"
+                        try{
+                            bat "devpi upload --with-docs"
+
+                        } catch (exc) {
+                            echo "Unable to upload to devpi with docs. Trying without"
+                            bat "devpi upload"
+                        }
                     }
                     bat "devpi test HathiValidate"
                 }
