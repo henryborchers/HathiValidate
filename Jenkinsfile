@@ -184,7 +184,9 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
                     bat "devpi login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
                     bat "devpi use /${DEVPI_USERNAME}/${env.BRANCH_NAME}"
-                    bat "devpi upload --with-docs"
+                    script {
+                        bat "devpi upload --with-docs"
+                    }
                     bat "devpi test HathiValidate"
                 }
 
