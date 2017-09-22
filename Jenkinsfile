@@ -1,86 +1,114 @@
+@Library("ds-utils")
+import org.ds.*
+
 pipeline {
     agent any
+    environment {
+        mypy_args = "--junit-xml=mypy.xml"
+        pytest_args = "--junitxml=reports/junit-{env:OS:UNKNOWN_OS}-{envname}.xml --junit-prefix={env:OS:UNKNOWN_OS}  --basetemp={envtmpdir}"
+    }
     parameters {
-      string(name: "PROJECT_NAME", defaultValue: "Hathi Validate", description: "Name given to the project")
-      booleanParam(name: "UNIT_TESTS", defaultValue: true, description: "Run Automated Unit Tests")
-//      booleanParam(name: "STATIC_ANALYSIS", defaultValue: true, description: "Run static analysis tests")
-      booleanParam(name: "PACKAGE", defaultValue: true, description: "Create a Packages")
-      booleanParam(name: "DEPLOY", defaultValue: false, description: "Deploy SCCM")
-      booleanParam(name: "BUILD_DOCS", defaultValue: true, description: "Build documentation")
-      booleanParam(name: "UPDATE_DOCS", defaultValue: false, description: "Update the documentation")
-      string(name: 'URL_SUBFOLDER', defaultValue: "hathi_validate", description: 'The directory that the docs should be saved under')
+        string(name: "PROJECT_NAME", defaultValue: "Hathi Validate", description: "Name given to the project")
+        booleanParam(name: "UNIT_TESTS", defaultValue: true, description: "Run Automated Unit Tests")
+        booleanParam(name: "ADDITIONAL_TESTS", defaultValue: true, description: "Run additional tests")
+        booleanParam(name: "PACKAGE", defaultValue: true, description: "Create a Packages")
+        booleanParam(name: "DEPLOY", defaultValue: false, description: "Deploy SCCM")
+        booleanParam(name: "UPDATE_DOCS", defaultValue: false, description: "Update the documentation")
+        string(name: 'URL_SUBFOLDER', defaultValue: "hathi_validate", description: 'The directory that the docs should be saved under')
     }
     stages {
-       stage("Cloning Source") {
-           agent any
-
-           steps {
-               deleteDir()
-               checkout scm
-               stash includes: '**', name: "Source", useDefaultExcludes: false
-
-           }
-
-       }
-
-       stage("Unit tests") {
-          when{
-            expression{params.UNIT_TESTS == true}
-          }
-          steps {
-              parallel(
-                "Windows": {
-                    node(label: 'Windows') {
-                        deleteDir()
-                        unstash "Source"
-                        bat "${env.TOX}  -e jenkins"
-                        junit 'reports/junit-*.xml'
-
-                    }
-                },
-                "Linux": {
-                    node(label: "!Windows") {
-                        deleteDir()
-                        unstash "Source"
-                        withEnv(["PATH=${env.PYTHON3}/..:${env.PATH}"]) {
-                            sh "${env.TOX}  -e jenkins"
-                        }
-                        junit 'reports/junit-*.xml'
-                    }
-                }
-              )
-          }
-        }
-        stage("Documentation") {
+        stage("Cloning Source") {
             agent any
-            when{
-                expression{params.BUILD_DOCS == true}
-            }
+
             steps {
                 deleteDir()
-                unstash "Source"
-                withEnv(['PYTHON=${env.PYTHON3}']) {
-                    sh """
-                  ${env.PYTHON3} -m venv .env
-                  . .env/bin/activate
-                  pip install --upgrade pip
-                  pip install -r requirements.txt
-                  cd docs && make html
+                checkout scm
+                stash includes: '**', name: "Source", useDefaultExcludes: false
+                stash includes: 'deployment.yml', name: "Deployment"
 
-                  """
-                    stash includes: '**', name: "Documentation source", useDefaultExcludes: false
-                }
             }
-            post {
-                success {
-                    sh 'tar -czvf sphinx_html_docs.tar.gz -C docs/build/html .'
-                    archiveArtifacts artifacts: 'sphinx_html_docs.tar.gz'
-                }
+
+        }
+
+        stage("Unit tests") {
+            when {
+                expression { params.UNIT_TESTS == true }
+            }
+            steps {
+                parallel(
+                    "Windows": {
+                        script {
+                            def runner = new Tox(this)
+                            runner.env = "pytest"
+                            runner.windows = true
+                            runner.stash = "Source"
+                            runner.label = "Windows"
+                            runner.post = {
+                                junit 'reports/junit-*.xml'
+                            }
+                            runner.run()
+                        }
+                    },
+                    "Linux": {
+                        script {
+                            def runner = new Tox(this)
+                            runner.env = "pytest"
+                            runner.windows = false
+                            runner.stash = "Source"
+                            runner.label = "!Windows"
+                            runner.post = {
+                                junit 'reports/junit-*.xml'
+                            }
+                            runner.run()
+                        }
+                    }
+                )
             }
         }
+        stage("Additional tests") {
+            when {
+                expression { params.ADDITIONAL_TESTS == true }
+            }
+
+            steps {
+                parallel(
+                        "Documentation": {
+                            script {
+                                def runner = new Tox(this)
+                                runner.env = "docs"
+                                runner.windows = false
+                                runner.stash = "Source"
+                                runner.label = "!Windows"
+                                runner.post = {
+                                    dir('.tox/dist/html/') {
+                                        stash includes: '**', name: "HTML Documentation", useDefaultExcludes: false
+                                    }
+                                }
+                                runner.run()
+
+                            }
+                        },
+                        "MyPy": {
+                            script {
+                                def runner = new Tox(this)
+                                runner.env = "mypy"
+                                runner.windows = false
+                                runner.stash = "Source"
+                                runner.label = "!Windows"
+                                runner.post = {
+                                    junit 'mypy.xml'
+                                }
+                                runner.run()
+
+                            }
+                        }
+                )
+            }
+
+        }
         stage("Packaging") {
-            when{
-                expression{params.PACKAGE == true}
+            when {
+                expression { params.PACKAGE == true }
             }
             steps {
                 parallel(
@@ -97,12 +125,12 @@ pipeline {
                                 deleteDir()
                                 unstash "Source"
                                 bat """ ${env.PYTHON3} -m venv .env
-                              call .env/Scripts/activate.bat
-                              pip install -r requirements.txt
-                              python cx_setup.py bdist_msi --add-to-path=true
-                              """
+                          call .env/Scripts/activate.bat
+                          pip install -r requirements.txt
+                          python cx_setup.py bdist_msi --add-to-path=true
+                          """
 
-                                dir("dist"){
+                                dir("dist") {
                                     stash includes: "*.msi", name: "msi"
                                 }
 
@@ -111,80 +139,73 @@ pipeline {
                                 deleteDir()
                                 git url: 'https://github.com/UIUCLibrary/ValidateMSI.git'
                                 unstash "msi"
-                                // validate_msi.py
 
                                 bat """
-                      ${env.PYTHON3} -m venv .env
-                      call .env/Scripts/activate.bat
-                      pip install --upgrade pip
-                      pip install setuptools --upgrade
-                      pip install -r requirements.txt
-                      python setup.py install
-
-                      echo Validating msi file(s)
-                      FOR /f "delims=" %%A IN ('dir /b /s *.msi') DO (
-                        python validate_msi.py ^"%%A^" frozen.yml
-                        if not %errorlevel%==0 (
-                          echo errorlevel=%errorlevel%
-                          exit /b %errorlevel%
-                          )
-                        )
-                      """
+                          ${env.PYTHON3} -m venv .env
+                          call .env/Scripts/activate.bat
+                          pip install --upgrade pip
+                          pip install setuptools --upgrade
+                          pip install -r requirements.txt
+                          python setup.py install
+    
+                          echo Validating msi file(s)
+                          FOR /f "delims=" %%A IN ('dir /b /s *.msi') DO (
+                            python validate_msi.py ^"%%A^" frozen.yml
+                            if not %errorlevel%==0 (
+                              echo errorlevel=%errorlevel%
+                              exit /b %errorlevel%
+                              )
+                            )
+                          """
                                 archiveArtifacts artifacts: "*.msi", fingerprint: true
                             }
                         },
                         "Source Release": {
-                            deleteDir()
-                            unstash "Source"
-                            sh "${env.PYTHON3} setup.py sdist"
-                            archiveArtifacts artifacts: "dist/**", fingerprint: true
+                            createSourceRelease(env.PYTHON3, "Source")
                         }
                 )
             }
         }
-        stage("Deploy - Staging"){
+        stage("Deploy - Staging") {
             agent any
             when {
-                expression{params.DEPLOY == true && params.PACKAGE == true}
+                expression { params.DEPLOY == true && params.PACKAGE == true }
             }
             steps {
-                deleteDir()
-                unstash "msi"
-                sh "rsync -rv ./ \"${env.SCCM_STAGING_FOLDER}/${params.PROJECT_NAME}/\""
+                deployStash("msi", "${env.SCCM_STAGING_FOLDER}/${params.PROJECT_NAME}/")
                 input("Deploy to production?")
             }
         }
 
-        stage("Deploy - SCCM upload"){
+        stage("Deploy - SCCM upload") {
             agent any
             when {
-                expression{params.DEPLOY == true && params.PACKAGE == true}
+                expression { params.DEPLOY == true && params.PACKAGE == true }
             }
             steps {
-                deleteDir()
-                unstash "msi"
-                sh "rsync -rv ./ ${env.SCCM_UPLOAD_FOLDER}/"
+                deployStash("msi", "${env.SCCM_UPLOAD_FOLDER}")
             }
-        }
-        stage("Update online documentation") {
-            agent any
-            when{
-                expression{params.UPDATE_DOCS == true && params.BUILD_DOCS == true}
-            }
-
-            steps {
-                deleteDir()
-                script {
-                    echo "Updating online documentation"
-                    unstash "Documentation source"
-                    try {
-                        sh("rsync -rv -e \"ssh -i ${env.DCC_DOCS_KEY}\" docs/build/html/ ${env.DCC_DOCS_SERVER}/${params.URL_SUBFOLDER}/ --delete")
-                    } catch(error) {
-                        echo "Error with uploading docs"
-                        throw error
+            post {
+                success {
+                    script{
+                        unstash "Source"
+                        def  deployment_request = requestDeploy this, "deployment.yml"
+                        echo deployment_request
+                        writeFile file: "deployment_request.txt", text: deployment_request
+                        archiveArtifacts artifacts: "deployment_request.txt"
                     }
                 }
             }
         }
-     }
-  }
+        stage("Update online documentation") {
+            agent any
+            when {
+                expression { params.UPDATE_DOCS == true }
+            }
+
+            steps {
+                updateOnlineDocs url_subdomain: params.URL_SUBFOLDER, stash_name: "HTML Documentation"
+            }
+        }
+    }
+}

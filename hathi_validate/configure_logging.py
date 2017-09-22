@@ -20,7 +20,9 @@ def configure_logger(debug_mode=False, log_file=None):
         std_handler.setFormatter(debug_formatter)
     else:
         std_handler.setLevel(logging.INFO)
+        logger.setLevel(logging.INFO)
 
     # std_handler.setFormatter(debug_formatter)
 
     logger.addHandler(std_handler)
+    return logger
