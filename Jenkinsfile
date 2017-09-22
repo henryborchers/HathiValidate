@@ -181,8 +181,8 @@ pipeline {
                 echo "I'm logging into Devpi"
                 bat "devpi use http://devpy.library.illinois.edu"
                 withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-                    bat "whoami"
-                    bat "devpi login $DEVPI_USERNAME --password=$DEVPI_PASSWORD"
+                    bat "devpi login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
+                    bat "devpi use /${DEVPI_USERNAME}/${env.BRANCH_NAME}"
                 }
 
             }
