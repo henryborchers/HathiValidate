@@ -168,12 +168,17 @@ pipeline {
             }
         }
         stage("Deploying to Devpi") {
-            agent any
+            agent {
+                node {
+                    label 'Windows'
+                }
+            }
             when {
-                expression { params.DEPLOY_DEVPI== true }
+                expression { params.DEPLOY_DEVPI == true }
             }
             steps {
-                echo "I'm loggin into Devpi"
+                echo "I'm logging into Devpi"
+
             }
         }
         stage("master branch stuff"){
