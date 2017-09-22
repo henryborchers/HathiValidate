@@ -1,4 +1,5 @@
 @Library("ds-utils")
+// Uses https://github.com/UIUCLibrary/Jenkins_utils
 import org.ds.*
 
 pipeline {
@@ -12,7 +13,8 @@ pipeline {
         booleanParam(name: "UNIT_TESTS", defaultValue: true, description: "Run Automated Unit Tests")
         booleanParam(name: "ADDITIONAL_TESTS", defaultValue: true, description: "Run additional tests")
         booleanParam(name: "PACKAGE", defaultValue: true, description: "Create a Packages")
-        booleanParam(name: "DEPLOY", defaultValue: false, description: "Deploy SCCM")
+        booleanParam(name: "DEPLOY_SCCM", defaultValue: false, description: "Deploy SCCM")
+        booleanParam(name: "DEPLOY_DEVPI", defaultValue: true, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
         booleanParam(name: "UPDATE_DOCS", defaultValue: false, description: "Update the documentation")
         string(name: 'URL_SUBFOLDER', defaultValue: "hathi_validate", description: 'The directory that the docs should be saved under')
     }
@@ -36,32 +38,32 @@ pipeline {
             }
             steps {
                 parallel(
-                    "Windows": {
-                        script {
-                            def runner = new Tox(this)
-                            runner.env = "pytest"
-                            runner.windows = true
-                            runner.stash = "Source"
-                            runner.label = "Windows"
-                            runner.post = {
-                                junit 'reports/junit-*.xml'
+                        "Windows": {
+                            script {
+                                def runner = new Tox(this)
+                                runner.env = "pytest"
+                                runner.windows = true
+                                runner.stash = "Source"
+                                runner.label = "Windows"
+                                runner.post = {
+                                    junit 'reports/junit-*.xml'
+                                }
+                                runner.run()
                             }
-                            runner.run()
-                        }
-                    },
-                    "Linux": {
-                        script {
-                            def runner = new Tox(this)
-                            runner.env = "pytest"
-                            runner.windows = false
-                            runner.stash = "Source"
-                            runner.label = "!Windows"
-                            runner.post = {
-                                junit 'reports/junit-*.xml'
+                        },
+                        "Linux": {
+                            script {
+                                def runner = new Tox(this)
+                                runner.env = "pytest"
+                                runner.windows = false
+                                runner.stash = "Source"
+                                runner.label = "!Windows"
+                                runner.post = {
+                                    junit 'reports/junit-*.xml'
+                                }
+                                runner.run()
                             }
-                            runner.run()
                         }
-                    }
                 )
             }
         }
@@ -166,10 +168,11 @@ pipeline {
                 )
             }
         }
+
         stage("Deploy - Staging") {
             agent any
             when {
-                expression { params.DEPLOY == true && params.PACKAGE == true }
+                expression { params.DEPLOY_SCCM == true && params.PACKAGE == true }
             }
             steps {
                 deployStash("msi", "${env.SCCM_STAGING_FOLDER}/${params.PROJECT_NAME}/")
@@ -180,21 +183,51 @@ pipeline {
         stage("Deploy - SCCM upload") {
             agent any
             when {
-                expression { params.DEPLOY == true && params.PACKAGE == true }
+                expression { params.DEPLOY_SCCM == true && params.PACKAGE == true }
             }
             steps {
                 deployStash("msi", "${env.SCCM_UPLOAD_FOLDER}")
             }
             post {
                 success {
-                    script{
+                    script {
                         unstash "Source"
-                        def  deployment_request = requestDeploy this, "deployment.yml"
+                        def deployment_request = requestDeploy this, "deployment.yml"
                         echo deployment_request
                         writeFile file: "deployment_request.txt", text: deployment_request
                         archiveArtifacts artifacts: "deployment_request.txt"
                     }
                 }
+            }
+        }
+        stage("Deploying to Devpi") {
+            agent {
+                node {
+                    label 'Windows'
+                }
+            }
+            when {
+                expression { params.DEPLOY_DEVPI == true }
+            }
+            steps {
+                deleteDir()
+                unstash "Source"
+                bat "devpi use http://devpy.library.illinois.edu"
+                withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
+                    bat "devpi login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
+                    bat "devpi use /${DEVPI_USERNAME}/${env.BRANCH_NAME}"
+                    script {
+                        try{
+                            bat "devpi upload --with-docs"
+
+                        } catch (exc) {
+                            echo "Unable to upload to devpi with docs. Trying without"
+                            bat "devpi upload"
+                        }
+                    }
+                    bat "devpi test HathiValidate"
+                }
+
             }
         }
         stage("Update online documentation") {
