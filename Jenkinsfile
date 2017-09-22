@@ -179,9 +179,9 @@ pipeline {
             }
             steps {
                 echo "I'm logging into Devpi"
-                withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
                     bat "whoami"
-                    bat "devpi login $USERNAME --password=$PASSWORD"
+                    bat "devpi login $DEVPI_USERNAME --password=$DEVPI_PASSWORD"
                 }
 
             }
