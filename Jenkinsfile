@@ -180,7 +180,7 @@ pipeline {
             steps {
                 echo "I'm logging into Devpi"
                 withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
-
+                    bat "whoami"
                     bat "devpi login %USERNAME% --password %PASSWORD%"
                 }
 
