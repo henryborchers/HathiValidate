@@ -218,11 +218,11 @@ pipeline {
                     bat "devpi use /${DEVPI_USERNAME}/${env.BRANCH_NAME}"
                     script {
                         try{
-                            bat "devpi upload --with-docs --formats sdist,bdist_wheel"
+                            bat "devpi upload --with-docs"
 
                         } catch (exc) {
                             echo "Unable to upload to devpi with docs. Trying without"
-                            bat "devpi upload --formats sdist,bdist_wheel"
+                            bat "devpi upload "
                         }
                     }
                     bat "devpi test HathiValidate"
