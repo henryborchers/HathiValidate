@@ -258,7 +258,7 @@ def parse_yaml(filename):
         return data
 
 
-def find_errors_meta(filename, path):
+def find_errors_meta(filename, path, require_page_data=True):
     """
     Validate meta.yml file
     could also validate that the values are correct by comparing with the images
@@ -304,8 +304,9 @@ def find_errors_meta(filename, path):
                 summary_builder.add_error(error)
             for error in find_capture_agent_errors(yml_metadata):
                 summary_builder.add_error(error)
-            for error in find_pagedata_errors(yml_metadata):
-                summary_builder.add_error(error)
+            if require_page_data:
+                for error in find_pagedata_errors(yml_metadata):
+                    summary_builder.add_error(error)
         except KeyError as e:
             summary_builder.add_error("{} is missing key, {}".format(filename, e))
     except yaml.YAMLError as e:
@@ -315,7 +316,7 @@ def find_errors_meta(filename, path):
     return summary_builder.construct()
 
 
-def process_directory(path: str):
+def process_directory(path: str, require_page_data=True):
     # TODO validate directory name
     logger = logging.getLogger(__name__)
 
@@ -358,7 +359,7 @@ def process_directory(path: str):
     yml_file = os.path.join(path, "meta.yml")
     logger.info("Validating {}".format(yml_file))
     yml_errors = []
-    for error in find_errors_meta(filename=yml_file, path=path):
+    for error in find_errors_meta(filename=yml_file, path=path, require_page_data=require_page_data):
         print(error.message)
         yml_errors.append(error)
     else:
