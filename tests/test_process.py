@@ -203,10 +203,11 @@ def checksum_file(tmpdir):
     p.write(dummy_checksum)
     return p
 
+
 @pytest.fixture()
 def yaml_file_bb(tmpdir):
     p = tmpdir.mkdir("bbyamltest").join("meta.yml")
-    with open(p, "w") as f:
+    with open(str(p), "w") as f:
         f.write("capture_date: 2016-06-21T08:00:00Z\n")
         f.write("capture_agent: TRIGONIX\n")
         f.write("scanner_user: TRIGONIX\n")
@@ -214,18 +215,21 @@ def yaml_file_bb(tmpdir):
         f.write("scanner_model: TRIGO-C1\n")
     return str(p)
 
+
 def test_bb_yaml(yaml_file_bb):
-    errors = process.find_errors_meta(filename=yaml_file_bb, path=os.path.dirname(yaml_file_bb), require_page_data=False)
+    errors = process.find_errors_meta(filename=yaml_file_bb, path=os.path.dirname(yaml_file_bb),
+                                      require_page_data=False)
 
     for e in errors:
         print(e.message)
     assert len(errors) == 0
 
+
 @pytest.fixture()
 def ds_with_yml(tmpdir):
     p = tmpdir.mkdir("dsyamltest")
     yaml = p.join("meta.yml")
-    with open(yaml, "w") as f:
+    with open(str(yaml), "w") as f:
         f.write("capture_date: 2017-07-03T14:22:30-05:00\n")
         f.write("capture_agent: IU\n")
         f.write("scanner_user: University of Illinois Digital Content Creation Unit\n")
@@ -243,6 +247,7 @@ def test_ds_yaml(ds_with_yml):
     for e in errors:
         print(e.message)
     assert len(errors) == 0
+
 
 @pytest.fixture()
 def marc_file(tmpdir):
