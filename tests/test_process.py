@@ -235,7 +235,7 @@ def ds_with_yml(tmpdir):
         f.write("scanner_user: University of Illinois Digital Content Creation Unit\n")
         f.write("pagedata:\n")
         f.write("    00000001.jp2: { }\n")
-    jp2_file = os.path.join(p, "00000001.jp2")
+    jp2_file = os.path.join(str(p), "00000001.jp2")
     with open(jp2_file, "wb") as f:
         pass
     return str(p)
