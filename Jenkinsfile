@@ -51,19 +51,19 @@ pipeline {
                                 runner.run()
                             }
                         },
-                        "Linux": {
-                            script {
-                                def runner = new Tox(this)
-                                runner.env = "pytest"
-                                runner.windows = false
-                                runner.stash = "Source"
-                                runner.label = "!Windows"
-                                runner.post = {
-                                    junit 'reports/junit-*.xml'
-                                }
-                                runner.run()
-                            }
-                        }
+                        // "Linux": {
+                        //     script {
+                        //         def runner = new Tox(this)
+                        //         runner.env = "pytest"
+                        //         runner.windows = false
+                        //         runner.stash = "Source"
+                        //         runner.label = "!Windows"
+                        //         runner.post = {
+                        //             junit 'reports/junit-*.xml'
+                        //         }
+                        //         runner.run()
+                        //     }
+                        // }
                 )
             }
         }
@@ -78,9 +78,9 @@ pipeline {
                             script {
                                 def runner = new Tox(this)
                                 runner.env = "docs"
-                                runner.windows = false
+                                runner.windows = true
                                 runner.stash = "Source"
-                                runner.label = "!Windows"
+                                runner.label = "Windows"
                                 runner.post = {
                                     dir('.tox/dist/html/') {
                                         stash includes: '**', name: "HTML Documentation", useDefaultExcludes: false
@@ -94,9 +94,9 @@ pipeline {
                             script {
                                 def runner = new Tox(this)
                                 runner.env = "mypy"
-                                runner.windows = false
+                                runner.windows = true
                                 runner.stash = "Source"
-                                runner.label = "!Windows"
+                                runner.label = "Windows"
                                 runner.post = {
                                     junit 'mypy.xml'
                                 }
