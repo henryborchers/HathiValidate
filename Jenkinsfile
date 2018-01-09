@@ -227,11 +227,13 @@ pipeline {
             steps {
                 parallel(
                         "Source and Wheel formats": {
-                            bat """${tool 'Python3.6.3_Win64'} -m venv venv
-                                    call venv\\Scripts\\activate.bat
-                                    pip install -r requirements-dev.txt
-                                    python setup.py sdist bdist_wheel
-                                    """
+                            bat "call make.bat"
+                            // bat """${tool 'Python3.6.3_Win64'} -m venv venv
+                            //         call venv\\Scripts\\activate.bat
+                            //         pip install -r requirements.txt
+                            //         pip install -r requirements-dev.txt
+                            //         python setup.py sdist bdist_wheel
+                            //         """
                         },
                         "Windows CX_Freeze MSI": {
                             node(label: "Windows") {
