@@ -91,19 +91,26 @@ pipeline {
                             }
                         },
                         "MyPy": {
-                            script {
-                                def runner = new Tox(this)
-                                runner.env = "mypy"
-                                runner.windows = true
-                                runner.stash = "Source"
-                                runner.label = "Windows"
-                                runner.post = {
-                                    junit 'mypy.xml'
-                                }
-                                runner.run()
-
+                            node(label: "Windows") {
+                                checkout scm
+                                bat "make test-mypy --html-report reports/mypy_report --junit-xml reports/mypy.xml"
+                                junit 'reports/mypy.xml'
                             }
-                        }
+                          }
+                        // "MyPy": {
+                        //     script {
+                        //         def runner = new Tox(this)
+                        //         runner.env = "mypy"
+                        //         runner.windows = true
+                        //         runner.stash = "Source"
+                        //         runner.label = "Windows"
+                        //         runner.post = {
+                        //             junit 'mypy.xml'
+                        //         }
+                        //         runner.run()
+
+                        //     }
+                        // }
                 )
             }
 
