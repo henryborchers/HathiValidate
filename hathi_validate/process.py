@@ -79,14 +79,17 @@ import datetime
 import hashlib
 import logging
 import os
-
+import warnings
 import itertools
+import typing
+
 import yaml
 from lxml import etree
 
 from hathi_validate import result
 from hathi_validate import xml_schemes
 import re
+from . import validator
 
 DIRECTORY_REGEX = "^\d+(p\d+(_\d+)?)?(v\d+(_\d+)?)?(i\d+(_\d+)?)?(m\d+(_\d+)?)?$"
 DATE_REGEX = re.compile("^(\d{4})-(\d{2})-(\d{2})T(\d{2})\:(\d{2})(\:\d{2})?-(\d{2}):(\d{2})$")
@@ -316,7 +319,52 @@ def find_errors_meta(filename, path, require_page_data=True):
     return summary_builder.construct()
 
 
+def find_errors_ocr(path) -> result.ResultSummary:
+    """ Validate all xml files located in the given path to make sure they are valid to the alto scheme
+
+    Args:
+        path: Path to find the alto xml files
+
+    Returns:
+
+    """
+    def ocr_filter(entry):
+        if not entry.is_file():
+            return False
+
+        base, ext = os.path.splitext(entry.name)
+        if ext.lower() != ".xml":
+            return False
+        if base == "marc":
+            return False
+
+        return True
+
+    alto_xsd = etree.XML(xml_schemes.get_scheme("alto"))
+    alto_scheme = etree.XMLSchema(alto_xsd)
+
+    summary_builder = result.SummaryDirector(source=path)
+    for xml_file in filter(ocr_filter, os.scandir(path)):
+
+        # print(xml_file.path)
+        try:
+            with open(xml_file.path, "r", encoding="utf8") as f:
+                raw_data = f.read()
+
+            doc = etree.fromstring(raw_data)
+
+            if not alto_scheme.validate(doc):
+                summary_builder.add_error("{} does not validate to ALTO scheme".format(xml_file.name))
+
+        except FileNotFoundError:
+            summary_builder.add_error("File missing")
+        except etree.XMLSyntaxError as e:
+            summary_builder.add_error("Syntax error: {}".format(e))
+    # summary_builder = result.SummaryDirector(source=path)
+    return summary_builder.construct()
+
 def process_directory(path: str, require_page_data=True):
+    warnings.warn("Use run_validation instead", DeprecationWarning)
     # TODO validate directory name
     logger = logging.getLogger(__name__)
 
@@ -366,3 +414,23 @@ def process_directory(path: str, require_page_data=True):
         logger.info("{} successfully validated".format(yml_file))
 
     return yml_errors + marc_errors + checksum_errors + extra_subdirectory_errors + missing_errors
+
+
+def run_validations(validators:typing.List[validator.absValidator]):
+    errors = []
+    for tester in validators:
+        tester.validate()
+        for error in tester.results:
+            errors.append(error)
+
+    return errors
+
+
+def run_validation(validation_test:validator.absValidator):
+    validation_test.validate()
+    return validation_test.results
+
+#
+# def process_validation(validator: validator.absValidator, *args, **kwargs)->typing.List[result.ResultSummary]:
+#     validator.validate()
+#     return validator.results

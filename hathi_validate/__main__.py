@@ -1,7 +1,7 @@
 import sys
 
 import hathi_validate.cli
-import hathi_validate.gui
+# import hathi_validate.gui
 def main():
     if len(sys.argv) > 1 and sys.argv[1] == "--pytest":
         import pytest  # type: ignore

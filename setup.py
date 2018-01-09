@@ -16,6 +16,7 @@ setup(
     name=metadata['__title__'],
     version=metadata['__version__'],
     packages=['hathi_validate'],
+    package_data={'hathi_validate':["xsd/*.xsd"]},
     url=metadata['__url__'],
     license='University of Illinois/NCSA Open Source License',
     test_suite="tests",
