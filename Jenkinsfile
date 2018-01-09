@@ -3,7 +3,9 @@
 import org.ds.*
 
 pipeline {
-    agent any
+    agent {
+        label "Windows"
+    }
     environment {
         mypy_args = "--junit-xml=mypy.xml"
         pytest_args = "--junitxml=reports/junit-{env:OS:UNKNOWN_OS}-{envname}.xml --junit-prefix={env:OS:UNKNOWN_OS}  --basetemp={envtmpdir}"
@@ -21,7 +23,6 @@ pipeline {
     }
     stages {
         stage("Cloning Source") {
-            agent any
 
             steps {
                 deleteDir()
@@ -227,7 +228,6 @@ pipeline {
             steps {
                 parallel(
                         "Source and Wheel formats": {
-                            bat "dir"
                             bat "call make.bat"
                             // bat """${tool 'Python3.6.3_Win64'} -m venv venv
                             //         call venv\\Scripts\\activate.bat
