@@ -3,7 +3,9 @@ import argparse
 
 import sys
 
-from hathi_validate import package, process, configure_logging, report
+import os
+
+from hathi_validate import package, process, configure_logging, report, validator
 import hathi_validate
 
 
@@ -34,7 +36,64 @@ def main():
     errors = []
     for pkg in package.get_dirs(args.path):
         logger.info("Checking {}".format(pkg))
-        errors += process.process_directory(pkg)
+
+        # Validate missing files
+        logger.debug("Looking for missing files in {}".format(pkg))
+        missing_files_errors = process.run_validation(validator.ValidateMissingFiles(path=pkg))
+        if not missing_files_errors:
+            logger.info("Found no missing files in {}".format(pkg))
+        else:
+            for error in missing_files_errors:
+                logger.info(str(error))
+                errors.append(error)
+
+        # Validate extra subdirectories
+        logger.debug("Looking for extra subdirectories in {}".format(pkg))
+        extra_subdirectories_errors = process.run_validation(validator.ValidateExtraSubdirectories(path=pkg))
+        if not extra_subdirectories_errors:
+            pass
+        else:
+            for error in extra_subdirectories_errors:
+                errors.append(error)
+
+        # # Validate Checksums
+        # checksum_report = os.path.join(pkg, "checksum.md5")
+        # checksum_report_errors = process.run_validation(validator.ValidateChecksumReport(pkg, checksum_report))
+        # if not checksum_report_errors:
+        #     logger.info("All checksums in {} successfully validated".format(checksum_report))
+        # else:
+        #     for error in checksum_report_errors:
+        #         errors.append(error)
+
+        # Validate Marc
+        marc_file=os.path.join(pkg, "marc.xml")
+        marc_errors = process.run_validation(validator.ValidateMarc(marc_file))
+        if not marc_errors:
+            logger.info("{} successfully validated".format(marc_file))
+        else:
+            for error in marc_errors:
+                errors.append(error)
+
+        # Validate YML
+        yml_file = os.path.join(pkg, "meta.yml")
+        meta_yml_errors = process.run_validation(validator.ValidateMetaYML(yaml_file=yml_file, path=pkg, required_page_data=True))
+        if not meta_yml_errors:
+            logger.info("{} successfully validated".format(yml_file))
+        else:
+            for error in meta_yml_errors:
+                errors.append(error)
+        #
+        # # TODO: DELETE HERE
+        # ocr_errors = process.run_validation(validator.ValidateOCRFiles(path=pkg))
+        # if not ocr_errors:
+        #     logger.info("No validation errors found in ".format(pkg))
+        # else:
+        #     for error in ocr_errors:
+        #         errors.append(error)
+        # print(ocr_errors)
+        # exit()
+        #######################
+
 
     console_reporter2 = report.Reporter(report.ConsoleReporter())
     validation_report = report.get_report_as_str(errors)
