@@ -227,6 +227,7 @@ pipeline {
             steps {
                 parallel(
                         "Source and Wheel formats": {
+                            bat "dir"
                             bat "call make.bat"
                             // bat """${tool 'Python3.6.3_Win64'} -m venv venv
                             //         call venv\\Scripts\\activate.bat
