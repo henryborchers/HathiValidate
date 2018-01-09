@@ -40,19 +40,26 @@ def make_point(message, width):
 
 
 def get_report_as_str(results: typing.List[result.Result], width=0):
+    report_width = width if width > 0 else 80
     sorted_results = sorted(results, key=lambda r: r.source)
     grouped = list(itertools.groupby(sorted_results, key=lambda r: r.source))
+    grouped2 = []
+    for k, v in itertools.groupby(sorted_results, key=lambda r: r.source):
+        new_messages = []
+        for new_message in v:
+            new_messages.append(new_message)
+        grouped2.append((k, new_messages))
     header = "Validation Results"
-    main_spacer = "=" * (width if width > 0 else 80)
-    group_spacer = "-" * (width if width > 0 else 80)
+    main_spacer = "=" * report_width
+    group_spacer = "-" * report_width
     warning_groups = []
-    if len(grouped) > 0:
-        for source_group in grouped:
+    if len(grouped2) > 0:
+        for source_group in grouped2:
             msg_list = []
             for msg in source_group[1]:
-                if width > 0:
-                    for line in make_point(msg.message, width):
-                        msg_list.append(line)
+                # if width > 0:
+                for line in make_point(msg.message, report_width):
+                    msg_list.append(line)
 
             group_warnings = "\n".join(msg_list)
             warning_groups.append("{}\n\n{}\n".format(source_group[0], group_warnings))
