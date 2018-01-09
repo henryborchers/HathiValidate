@@ -1,3 +1,6 @@
+import os
+import pkgutil
+
 MARC_XSD = r"""<?xml version="1.0"?>
 <xsd:schema targetNamespace="http://www.loc.gov/MARC21/slim" xmlns="http://www.loc.gov/MARC21/slim" xmlns:xsd="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified" version="1.1" xml:lang="en">
   <xsd:annotation>
@@ -149,3 +152,11 @@ in subfieldcodeDataType  the pattern
   </xsd:simpleType>
 </xsd:schema>
 """
+
+
+def get_scheme(scheme_name):
+    try:
+        data = pkgutil.get_data("hathi_validate", "xsd/{}.xsd".format(scheme_name))
+        return data
+    except FileNotFoundError:
+        raise ValueError("Unknown scheme {}".format(scheme_name))
