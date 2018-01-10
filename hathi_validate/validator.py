@@ -1,6 +1,11 @@
 import abc
 import logging
 import typing
+
+import os
+
+import re
+
 from . import result
 from . import process
 
@@ -27,6 +32,56 @@ class ValidateMissingFiles(absValidator):
         for missing_file in process.find_missing_files(self.path):
             self.results.append(missing_file)
         # super().validate(path, *args, **kwargs)
+
+
+class ValidateComponents(absValidator):
+
+    def __init__(self, path, component_regex, *extensions) -> None:
+        """
+
+        Args:
+            path: Directory to find the files
+            component_regex: A regular expression to identify the component names.
+                Note: this regex should ignore the extension
+            *extensions: All the extensions to check for a given component
+        """
+        super().__init__()
+        self.path = path
+        self.component_regex = component_regex
+        self.extensions = extensions
+        self._component_mask = re.compile(component_regex)
+
+    def validate(self):
+        components = set()
+        found_files = False
+
+        logger = logging.getLogger(__name__)
+        report_builder = result.SummaryDirector(source=self.path)
+
+        for component_file in filter(self._component_filter, os.scandir(self.path)):
+            found_files = True
+            components.add(os.path.splitext(component_file.name)[0])
+
+
+        if not found_files:
+            raise FileNotFoundError("No files found with regex {}".format(self.component_regex))
+
+        for component in sorted(components):
+            # print(component)
+            for extension in self.extensions:
+                component_file_name = f"{component}{extension}"
+                component_file_path = os.path.join(self.path, component_file_name)
+                if not os.path.exists(component_file_path):
+                    report_builder.add_error("Missing {}".format(component_file_name))
+                    logger.info("Missing {}".format(component_file_name))
+        self.results = report_builder.construct()
+
+    def _component_filter(self, entry):
+        base, ext = os.path.splitext(entry.name)
+        if self._component_mask.fullmatch(base):
+            return True
+
+        return False
 
 
 class ValidateExtraSubdirectories(absValidator):
