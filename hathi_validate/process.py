@@ -339,7 +339,7 @@ def find_errors_ocr(path) -> result.ResultSummary:
             return False
 
         return True
-
+    logger = logging.getLogger(__name__)
     alto_xsd = etree.XML(xml_schemes.get_scheme("alto"))
     alto_scheme = etree.XMLSchema(alto_xsd)
 
@@ -355,6 +355,8 @@ def find_errors_ocr(path) -> result.ResultSummary:
 
             if not alto_scheme.validate(doc):
                 summary_builder.add_error("{} does not validate to ALTO scheme".format(xml_file.name))
+            else:
+                logger.info("{} validates to the ALTO XML scheme".format(xml_file.name))
 
         except FileNotFoundError:
             summary_builder.add_error("File missing")
@@ -372,7 +374,7 @@ def process_directory(path: str, require_page_data=True):
     logger.debug("Looking for missing files in {}".format(path))
     missing_errors = []
     for missing_file in find_missing_files(path):
-        print(missing_file)
+        print(missing_file.message)
         missing_errors.append(missing_file)
     else:
         logger.info("Found no missing files in {}".format(path))
