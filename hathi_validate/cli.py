@@ -16,6 +16,10 @@ def get_parser():
         action='version',
         version=hathi_validate.__version__)
     parser.add_argument("path", help="Path to the hathipackages")
+    parser.add_argument("--check_ocr",
+                        action="store_true",
+                        help="Check for ocr xml files"
+                        )
     parser.add_argument("--save-report", dest="report_name", help="Save report to a file")
     debug_group = parser.add_argument_group("Debug")
     debug_group.add_argument(
@@ -38,15 +42,28 @@ def main():
         logger.info("Checking {}".format(pkg))
 
         # Validate missing files
-        logger.debug("Looking for missing files in {}".format(pkg))
+        logger.debug("Looking for missing package files in {}".format(pkg))
         missing_files_errors = process.run_validation(validator.ValidateMissingFiles(path=pkg))
         if not missing_files_errors:
-            logger.info("Found no missing files in {}".format(pkg))
+            logger.info("Found no missing package files in {}".format(pkg))
         else:
             for error in missing_files_errors:
-                logger.info(str(error))
+                logger.info(error.message)
                 errors.append(error)
 
+        # Look for missing components
+        extensions = [".txt", ".jp2"]
+        if args.check_ocr:
+            extensions.append(".xml")
+        logger.debug("Looking for missing component files in {}".format(pkg))
+        missing_files_errors = process.run_validation(validator.ValidateComponents(pkg, "^\d{8}$", *extensions))
+        if not missing_files_errors:
+            logger.info("Found no missing component files in {}".format(pkg))
+        else:
+            for error in missing_files_errors:
+                logger.info(error.message)
+                errors.append(error)
+        # exit()
         # Validate extra subdirectories
         logger.debug("Looking for extra subdirectories in {}".format(pkg))
         extra_subdirectories_errors = process.run_validation(validator.ValidateExtraSubdirectories(path=pkg))
@@ -56,14 +73,14 @@ def main():
             for error in extra_subdirectories_errors:
                 errors.append(error)
 
-        # # Validate Checksums
-        # checksum_report = os.path.join(pkg, "checksum.md5")
-        # checksum_report_errors = process.run_validation(validator.ValidateChecksumReport(pkg, checksum_report))
-        # if not checksum_report_errors:
-        #     logger.info("All checksums in {} successfully validated".format(checksum_report))
-        # else:
-        #     for error in checksum_report_errors:
-        #         errors.append(error)
+        # Validate Checksums
+        checksum_report = os.path.join(pkg, "checksum.md5")
+        checksum_report_errors = process.run_validation(validator.ValidateChecksumReport(pkg, checksum_report))
+        if not checksum_report_errors:
+            logger.info("All checksums in {} successfully validated".format(checksum_report))
+        else:
+            for error in checksum_report_errors:
+                errors.append(error)
 
         # Validate Marc
         marc_file=os.path.join(pkg, "marc.xml")
@@ -83,16 +100,15 @@ def main():
             for error in meta_yml_errors:
                 errors.append(error)
         #
-        # # TODO: DELETE HERE
-        # ocr_errors = process.run_validation(validator.ValidateOCRFiles(path=pkg))
-        # if not ocr_errors:
-        #     logger.info("No validation errors found in ".format(pkg))
-        # else:
-        #     for error in ocr_errors:
-        #         errors.append(error)
-        # print(ocr_errors)
-        # exit()
-        #######################
+
+        # Validate ocr files
+        if args.check_ocr:
+            ocr_errors = process.run_validation(validator.ValidateOCRFiles(path=pkg))
+            if not ocr_errors:
+                logger.info("No validation errors found in ".format(pkg))
+            else:
+                for error in ocr_errors:
+                    errors.append(error)
 
 
     console_reporter2 = report.Reporter(report.ConsoleReporter())
