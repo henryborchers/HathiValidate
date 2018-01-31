@@ -1,11 +1,16 @@
 import os
 
 import sys
+from setuptools.config import read_configuration
 from cx_Freeze import setup, Executable
 import pytest
-import hathi_validate
+# import hathi_validate
 import platform
 
+def get_project_metadata():
+    path = os.path.abspath(os.path.join(os.path.dirname(__file__), "setup.cfg"))
+    return read_configuration(path)["metadata"]
+metadata = get_project_metadata()
 
 def create_msi_tablename(python_name, fullname):
     shortname = python_name[:6].replace("_", "").upper()
@@ -40,14 +45,14 @@ directory_table = [
     (
         "PMenu",  # Directory
         "ProgramMenuFolder",  # Directory_parent
-        create_msi_tablename(hathi_validate.__title__, hathi_validate.FULL_TITLE)
+        create_msi_tablename(metadata['name'], "DS Hathi Trust Validate")
     ),
 ]
 shortcut_table = [
     (
         "startmenuShortcutDoc",  # Shortcut
         "PMenu",  # Directory_
-        "{} Documentation".format(create_msi_tablename(hathi_validate.__title__, hathi_validate.FULL_TITLE)),
+        "{} Documentation".format(create_msi_tablename(metadata['name'], "DS Hathi Trust Validate")),
         "TARGETDIR",  # Component_
         "[TARGETDIR]documentation.url",  # Target
         None,  # Arguments
@@ -74,11 +79,12 @@ build_exe_options = {
 
 target_name = "hathivalidate.exe" if platform.system() == "Windows" else "hathivalidate"
 setup(
-    name=hathi_validate.FULL_TITLE,
-    description=hathi_validate.__description__,
-    version=hathi_validate.__version__,
-    author=hathi_validate.__author__,
-    author_email=hathi_validate.__author_email__,
+    name="DS Hathi Trust Validate",
+    description=metadata['description'],
+    version=metadata['version'],
+    license=metadata['license'],
+    author=metadata['author'],
+    author_email=metadata['author_email'],
     options={
         "build_exe": build_exe_options,
         "bdist_msi": {
