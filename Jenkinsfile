@@ -8,7 +8,7 @@ pipeline {
     }
     environment {
         mypy_args = "--junit-xml=mypy.xml"
-        pytest_args = "--junitxml=reports/junit-{env:OS:UNKNOWN_OS}-{envname}.xml --junit-prefix={env:OS:UNKNOWN_OS}  --basetemp={envtmpdir}"
+        //pytest_args = "--junitxml=reports/junit-{env:OS:UNKNOWN_OS}-{envname}.xml --junit-prefix={env:OS:UNKNOWN_OS}  --basetemp={envtmpdir}"
     }
     parameters {
         string(name: "PROJECT_NAME", defaultValue: "Hathi Validate", description: "Name given to the project")
@@ -38,12 +38,23 @@ pipeline {
                 expression { params.UNIT_TESTS == true }
             }
             steps {
-                node(label: "Windows") {
-                    checkout scm
-                    // bat "${tool 'Python3.6.3_Win64'} -m tox -e py36"
-                    bat "${tool 'Python3.6.3_Win64'} -m tox -e py36 -- --junitxml=reports/junit-${env.NODE_NAME}-pytest.xml --junit-prefix=${env.NODE_NAME}-pytest" //  --basetemp={envtmpdir}" 
-                    junit "reports/junit-${env.NODE_NAME}-pytest.xml"
+                parallel(
+                    "PyTest": {
+                        node(label: "Windows") {
+                            checkout scm
+                            // bat "${tool 'Python3.6.3_Win64'} -m tox -e py36"
+                            bat "${tool 'Python3.6.3_Win64'} -m tox -e pytest -- --junitxml=reports/junit-${env.NODE_NAME}-pytest.xml --junit-prefix=${env.NODE_NAME}-pytest" //  --basetemp={envtmpdir}" 
+                            junit "reports/junit-${env.NODE_NAME}-pytest.xml"
+                         }
+                    },
+                    "Behave": {
+                        node(label: "Windows") {
+                            checkout scm
+                            bat "${tool 'Python3.6.3_Win64'} -m tox -e behave --  --junit --junit-directory reports" 
+                            junit "reports/*.xml"
+                        }
                     }
+                )
                 
             }
         }
@@ -52,84 +63,98 @@ pipeline {
         //         expression { params.UNIT_TESTS == true }
         //     }
         //     steps {
-        //         parallel(
-        //                 "Windows": {
-        //                     script {
-        //                         def runner = new Tox(this)
-        //                         runner.env = "pytest"
-        //                         runner.windows = true
-        //                         runner.stash = "Source"
-        //                         runner.label = "Windows"
-        //                         runner.post = {
-        //                             junit 'reports/junit-*.xml'
-        //                         }
-        //                         runner.run()
-        //                     }
-        //                 },
-        //                 // "Linux": {
-        //                 //     script {
-        //                 //         def runner = new Tox(this)
-        //                 //         runner.env = "pytest"
-        //                 //         runner.windows = false
-        //                 //         runner.stash = "Source"
-        //                 //         runner.label = "!Windows"
-        //                 //         runner.post = {
-        //                 //             junit 'reports/junit-*.xml'
-        //                 //         }
-        //                 //         runner.run()
-        //                 //     }
-        //                 // }
-        //         )
+        //         node(label: "Windows") {
+        //             checkout scm
+        //             // bat "${tool 'Python3.6.3_Win64'} -m tox -e py36"
+        //             bat "${tool 'Python3.6.3_Win64'} -m tox -e py36 -- --junitxml=reports/junit-${env.NODE_NAME}-pytest.xml --junit-prefix=${env.NODE_NAME}-pytest" //  --basetemp={envtmpdir}" 
+        //             junit "reports/junit-${env.NODE_NAME}-pytest.xml"
+        //             }
+                
         //     }
         // }
-        // stage("Additional tests") {
-        //     when {
-        //         expression { params.ADDITIONAL_TESTS == true }
-        //     }
+        // // stage("Unit tests") {
+        // //     when {
+        // //         expression { params.UNIT_TESTS == true }
+        // //     }
+        // //     steps {
+        // //         parallel(
+        // //                 "Windows": {
+        // //                     script {
+        // //                         def runner = new Tox(this)
+        // //                         runner.env = "pytest"
+        // //                         runner.windows = true
+        // //                         runner.stash = "Source"
+        // //                         runner.label = "Windows"
+        // //                         runner.post = {
+        // //                             junit 'reports/junit-*.xml'
+        // //                         }
+        // //                         runner.run()
+        // //                     }
+        // //                 },
+        // //                 // "Linux": {
+        // //                 //     script {
+        // //                 //         def runner = new Tox(this)
+        // //                 //         runner.env = "pytest"
+        // //                 //         runner.windows = false
+        // //                 //         runner.stash = "Source"
+        // //                 //         runner.label = "!Windows"
+        // //                 //         runner.post = {
+        // //                 //             junit 'reports/junit-*.xml'
+        // //                 //         }
+        // //                 //         runner.run()
+        // //                 //     }
+        // //                 // }
+        // //         )
+        // //     }
+        // // }
+        // // stage("Additional tests") {
+        // //     when {
+        // //         expression { params.ADDITIONAL_TESTS == true }
+        // //     }
 
-        //     steps {
-        //         parallel(
-        //                 "Documentation": {
-        //                     script {
-        //                         def runner = new Tox(this)
-        //                         runner.env = "docs"
-        //                         runner.windows = true
-        //                         runner.stash = "Source"
-        //                         runner.label = "Windows"
-        //                         runner.post = {
-        //                             dir('.tox/dist/html/') {
-        //                                 stash includes: '**', name: "HTML Documentation", useDefaultExcludes: false
-        //                             }
-        //                         }
-        //                         runner.run()
+        // //     steps {
+        // //         parallel(
+        // //                 "Documentation": {
+        // //                     script {
+        // //                         def runner = new Tox(this)
+        // //                         runner.env = "docs"
+        // //                         runner.windows = true
+        // //                         runner.stash = "Source"
+        // //                         runner.label = "Windows"
+        // //                         runner.post = {
+        // //                             dir('.tox/dist/html/') {
+        // //                                 stash includes: '**', name: "HTML Documentation", useDefaultExcludes: false
+        // //                             }
+        // //                         }
+        // //                         runner.run()
 
-        //                     }
-        //                 },
-        //                 "MyPy": {
-        //                     node(label: "Windows") {
-        //                         checkout scm
-        //                         bat "make test-mypy --html-report reports/mypy_report --junit-xml reports/mypy.xml"
-        //                         junit 'reports/mypy.xml'
-        //                     }
-        //                   }
-        //                 // "MyPy": {
-        //                 //     script {
-        //                 //         def runner = new Tox(this)
-        //                 //         runner.env = "mypy"
-        //                 //         runner.windows = true
-        //                 //         runner.stash = "Source"
-        //                 //         runner.label = "Windows"
-        //                 //         runner.post = {
-        //                 //             junit 'mypy.xml'
-        //                 //         }
-        //                 //         runner.run()
+        // //                     }
+        // //                 },
+        // //                 "MyPy": {
+        // //                     node(label: "Windows") {
+        // //                         checkout scm
+        // //                         bat "make test-mypy --html-report reports/mypy_report --junit-xml reports/mypy.xml"
+        // //                         junit 'reports/mypy.xml'
+        // //                     }
+        // //                   }
+        // //                 // "MyPy": {
+        // //                 //     script {
+        // //                 //         def runner = new Tox(this)
+        // //                 //         runner.env = "mypy"
+        // //                 //         runner.windows = true
+        // //                 //         runner.stash = "Source"
+        // //                 //         runner.label = "Windows"
+        // //                 //         runner.post = {
+        // //                 //             junit 'mypy.xml'
+        // //                 //         }
+        // //                 //         runner.run()
 
-        //                 //     }
-        //                 // }
-        //         )
-        //     }
+        // //                 //     }
+        // //                 // }
+        // //         )
+        // //     }
 
-        // }
+        // // }
         stage("Additional tests") {
             when {
                 expression { params.ADDITIONAL_TESTS == true }

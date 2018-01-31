@@ -8,7 +8,7 @@ PackageManifest = collections.namedtuple("PackageManifest", ("source", "item_typ
 class PackageManifestDirector:
 
     def __init__(self) -> None:
-        self._packages = []
+        self._packages: typing.List[PackageManifest] = []
 
     #     self.source = source
 
