@@ -8,7 +8,6 @@ import os
 from hathi_validate import package, process, configure_logging, report, validator, manifest
 import hathi_validate
 
-
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(

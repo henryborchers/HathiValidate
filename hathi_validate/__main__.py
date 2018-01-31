@@ -1,7 +1,8 @@
 import sys
 
 import hathi_validate.cli
-# import hathi_validate.gui
+
+
 def main():
     if len(sys.argv) > 1 and sys.argv[1] == "--pytest":
         import pytest  # type: ignore
@@ -13,7 +14,6 @@ def main():
             print("Feature not currently installed", file=sys.stderr)
     else:
         hathi_validate.cli.main()
-
 
 
 if __name__ == '__main__':
