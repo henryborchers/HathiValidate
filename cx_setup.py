@@ -33,6 +33,7 @@ def get_tests():
 
 INCLUDE_FILES = [
     "documentation.url",
+    "setup.cfg"
     #     TODO: BUILD DOCUMENTATION
 ] + get_tests()
 
@@ -71,7 +72,7 @@ if os.path.exists(MSVC):
 build_exe_options = {
     "includes": ["queue", "atexit", "appdirs", 'pkg_resources'] + pytest.freeze_includes(),
     "include_msvcr": True,
-    "packages": ["os", "lxml", "packaging", "six", "appdirs", "hathi_validate"],
+    "packages": ["os", "lxml", "packaging", "six", "appdirs", "hathi_validate", "setuptools"],
     "excludes": ["tkinter"],
     "include_files": INCLUDE_FILES,
 
