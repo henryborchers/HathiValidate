@@ -3,3 +3,4 @@ include LICENSE tox.ini README.rst requirements.txt
 
 recursive-include tests *
 recursive-include docs *
+recursive-include features *.feature *.py
