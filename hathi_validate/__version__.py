@@ -1,5 +1,5 @@
 __title__ = 'HathiValidate'
-__version__ = '0.2.0'
+__version__ = '0.3.0'
 __url__ = 'https://github.com/UIUCLibrary/HathiValidate'
 __author__ = 'University of Illinois at Urbana Champaign'
 __author_email__ = 'hborcher@illinois.edu'

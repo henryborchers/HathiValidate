@@ -5,9 +5,8 @@ import sys
 
 import os
 
-from hathi_validate import package, process, configure_logging, report, validator
+from hathi_validate import package, process, configure_logging, report, validator, manifest
 import hathi_validate
-
 
 def get_parser():
     parser = argparse.ArgumentParser()
@@ -38,7 +37,15 @@ def main():
 
     configure_logging.configure_logger(debug_mode=args.debug, log_file=args.log_debug)
     errors = []
+    batch_manifest_builder = manifest.PackageManifestDirector()
     for pkg in package.get_dirs(args.path):
+        logger.info("Creating a manifest for {}".format(pkg))
+        package_builder = batch_manifest_builder.add_package(pkg)
+
+        for root, dirs, files in os.walk(pkg):
+            for file_name in files:
+                package_builder.add_file(file_name)
+
         logger.info("Checking {}".format(pkg))
 
         # Validate missing files
@@ -110,9 +117,11 @@ def main():
                 for error in ocr_errors:
                     errors.append(error)
 
-
+    batch_manifest = batch_manifest_builder.build_manifest()
+    manifest_report = manifest.get_report_as_str(batch_manifest, width=80)
     console_reporter2 = report.Reporter(report.ConsoleReporter())
     validation_report = report.get_report_as_str(errors)
+    console_reporter2.report(manifest_report)
     console_reporter2.report(validation_report)
     if args.report_name:
         file_reporter = report.Reporter(report.FileOutputReporter(args.report_name))
