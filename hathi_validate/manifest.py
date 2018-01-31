@@ -3,6 +3,8 @@ import os
 import typing
 
 PackageManifest = collections.namedtuple("PackageManifest", ("source", "item_types"))
+
+
 class PackageManifestDirector:
 
     def __init__(self) -> None:
@@ -12,7 +14,6 @@ class PackageManifestDirector:
 
     def build_manifest(self) -> typing.List[PackageManifest]:
         return self._packages
-
 
     def add_package(self, path):
         package = PackageManifestBuilder(path)
