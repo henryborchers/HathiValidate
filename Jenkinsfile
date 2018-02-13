@@ -356,7 +356,6 @@ pipeline {
         //             }
         //             bat "devpi test HathiValidate"
         //         }
-
         //     }
         // }
         stage("Deploying to Devpi") {
