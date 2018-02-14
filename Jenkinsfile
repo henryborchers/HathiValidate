@@ -11,7 +11,7 @@ pipeline {
     }
 
     environment {
-        mypy_args = "--junit-xml=mypy.xml"
+        //mypy_args = "--junit-xml=mypy.xml"
         //pytest_args = "--junitxml=reports/junit-{env:OS:UNKNOWN_OS}-{envname}.xml --junit-prefix={env:OS:UNKNOWN_OS}  --basetemp={envtmpdir}"
     }
     parameters {
@@ -188,7 +188,7 @@ pipeline {
                             node(label: "Windows") {
                                 script {
                                     checkout scm
-                                    def mypy_rc = bat returnStatus: true, script: "make test-mypy --html-report reports/mypy_report --junit-xml=junit-${env.NODE_NAME}-mypy.xml"
+                                    def mypy_rc = bat returnStatus: true, script: "make test-mypy --html-report reports/mypy_report --junit-xml=reports/junit-${env.NODE_NAME}-mypy.xml"
                                     
                                     if (mypy_rc == 0) {
                                         echo "MyPy found no issues"
@@ -196,7 +196,7 @@ pipeline {
                                     } else {
                                         echo "MyPy complained with an exit code of ${mypy_rc}."
                                     }
-                                    junit 'reports/mypy.xml'
+                                    junit "reports/junit-${env.NODE_NAME}-mypy.xml"
                                     publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/mypy_html', reportFiles: 'index.html', reportName: 'MyPy', reportTitles: ''])
                                 }
                             }
@@ -319,6 +319,7 @@ pipeline {
                                 bat "make freeze"
                                 dir("dist") {
                                     stash includes: "*.msi", name: "msi"
+                                    
                                 }
 
                             }
@@ -327,6 +328,7 @@ pipeline {
                                 git url: 'https://github.com/UIUCLibrary/ValidateMSI.git'
                                 unstash "msi"
                                 bat "call validate.bat -i"
+                                archiveArtifacts artifacts: "*.msi", fingerprint: true
                                 
                             }
                         },
@@ -335,10 +337,9 @@ pipeline {
             post {
               success {
                   dir("dist"){
-                      unstash "msi"
                       archiveArtifacts artifacts: "*.whl", fingerprint: true
                       archiveArtifacts artifacts: "*.tar.gz", fingerprint: true
-                      archiveArtifacts artifacts: "*.msi", fingerprint: true
+                      
                 }
               }
             }
