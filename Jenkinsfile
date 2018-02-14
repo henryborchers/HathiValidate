@@ -551,6 +551,9 @@ pipeline {
                 }
             }
         }
+        failure {
+            echo "Build failed"
+        }
         success {
             echo "Cleaning up workspace"
             deleteDir()
