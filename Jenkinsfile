@@ -468,7 +468,7 @@ pipeline {
             }
             post {
                 success {
-                    echo "it Worked. Pushing file to ${env.BRANCH_NAME} index"
+                    echo "It Worked. Pushing file to ${env.BRANCH_NAME} index"
                     script {
                         def name = bat(returnStdout: true, script: "@${tool 'Python3.6.3_Win64'} setup.py --name").trim()
                         def version = bat(returnStdout: true, script: "@${tool 'Python3.6.3_Win64'} setup.py --version").trim()
@@ -479,6 +479,9 @@ pipeline {
                         }
 
                     }
+                }
+                failure {
+                    echo "Test Devpi packages failed"
                 }
             }
         }
