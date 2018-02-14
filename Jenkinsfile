@@ -10,10 +10,10 @@ pipeline {
         disableConcurrentBuilds()  //each branch has 1 job running at a time
     }
 
-    environment {
+    // environment {
         //mypy_args = "--junit-xml=mypy.xml"
         //pytest_args = "--junitxml=reports/junit-{env:OS:UNKNOWN_OS}-{envname}.xml --junit-prefix={env:OS:UNKNOWN_OS}  --basetemp={envtmpdir}"
-    }
+    // }
     parameters {
         string(name: "PROJECT_NAME", defaultValue: "Hathi Validate", description: "Name given to the project")
         booleanParam(name: "UNIT_TESTS", defaultValue: true, description: "Run Automated Unit Tests")
