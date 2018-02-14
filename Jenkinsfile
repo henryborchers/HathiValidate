@@ -444,10 +444,9 @@ pipeline {
                                     echo "Testing Source package from DevPi"
                                     bat "${tool 'Python3.6.3_Win64'} -m devpi test --index http://devpi.library.illinois.edu/${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging ${name} -s tar.gz"
                                     
-                                }
-                                echo "Finished testing Source package from DevPi"
+                                }                                
                             }
-
+                            echo "Finished testing Source package from DevPi"
                         }
                     },
                     "Wheel": {
@@ -462,10 +461,8 @@ pipeline {
                                     bat "${tool 'Python3.6.3_Win64'} -m devpi test --index https://devpi.library.illinois.edu/${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging ${name} -s whl"
                             
                                 }
-                                echo "Finished testing Whl package from DevPi"  
                             }
-
-
+                            echo "Finished testing Whl package from DevPi"  
                         }
                     }
                 )
