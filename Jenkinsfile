@@ -411,14 +411,15 @@ pipeline {
             }
             steps {
                 bat "make.bat"
-                bat "${tool 'Python3.6.3_Win64'} -m devpi use https://devpi.library.illinois.edu"
+                bat "venv/Scripts/pip.exe install devpi-client"
+                bat "venv/Scripts/devpi.exe use https://devpi.library.illinois.edu"
                 withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-                    bat "${tool 'Python3.6.3_Win64'} -m devpi login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-                    bat "${tool 'Python3.6.3_Win64'} -m devpi use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
+                    bat "venv/Scripts/devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
+                    bat "venv/Scripts/devpi.exe use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
                     script {
-                        bat "${tool 'Python3.6.3_Win64'} -m devpi upload --from-dir dist"
+                        bat "venv/Scripts/devpi.exe upload --from-dir dist"
                         try {
-                            bat "${tool 'Python3.6.3_Win64'} -m devpi upload --only-docs"
+                            bat "venv/Scripts/devpi.exe upload --only-docs"
                         } catch (exc) {
                             echo "Unable to upload to devpi with docs."
                         }
