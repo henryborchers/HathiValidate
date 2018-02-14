@@ -181,13 +181,15 @@ pipeline {
                                         }
                                     }
                                 }
+                                publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: '.tox/dist/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
                             }
                         },
                         "MyPy": {
                             node(label: "Windows") {
                                 script {
                                     checkout scm
-                                    def mypy_rc = bat returnStatus: true, script: "make test-mypy --html-report reports/mypy_report --junit-xml reports/mypy.xml"
+                                    def mypy_rc = bat returnStatus: true, script: "make test-mypy --html-report reports/mypy_report --junit-xml=junit-${env.NODE_NAME}-mypy.xml"
+                                    
                                     if (mypy_rc == 0) {
                                         echo "MyPy found no issues"
                                         
@@ -195,6 +197,7 @@ pipeline {
                                         echo "MyPy complained with an exit code of ${mypy_rc}."
                                     }
                                     junit 'reports/mypy.xml'
+                                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/mypy_html', reportFiles: 'index.html', reportName: 'MyPy', reportTitles: ''])
                                 }
                             }
                         }
