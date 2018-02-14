@@ -197,7 +197,7 @@ pipeline {
                                         echo "MyPy complained with an exit code of ${mypy_rc}."
                                     }
                                     junit "reports/junit-${env.NODE_NAME}-mypy.xml"
-                                    // publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/mypy_html', reportFiles: 'index.html', reportName: 'MyPy', reportTitles: ''])
+                                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/mypy_report', reportFiles: 'index.html', reportName: 'MyPy', reportTitles: ''])
                                 }
                             }
                         }
