@@ -62,7 +62,6 @@ class ValidateComponents(absValidator):
             found_files = True
             components.add(os.path.splitext(component_file.name)[0])
 
-
         if not found_files:
             raise FileNotFoundError("No files found with regex {}".format(self.component_regex))
 
@@ -76,12 +75,15 @@ class ValidateComponents(absValidator):
                     logger.info("Missing {}".format(component_file_name))
         self.results = report_builder.construct()
 
-    def _component_filter(self, entry):
-        base, ext = os.path.splitext(entry.name)
-        if self._component_mask.fullmatch(base):
-            return True
+    def _component_filter(self, entry: os.DirEntry):
+        if not entry.is_file():
+            return False
 
-        return False
+        base, ext = os.path.splitext(entry.name)
+        if not self._component_mask.fullmatch(base):
+            return False
+
+        return True
 
 
 class ValidateExtraSubdirectories(absValidator):
@@ -137,4 +139,14 @@ class ValidateOCRFiles(absValidator):
 
     def validate(self):
         for error in process.find_errors_ocr(path=self.path):
+            self.results.append(error)
+
+
+class ValidateUTF8Files(absValidator):
+    def __init__(self, file_path):
+        super().__init__()
+        self.file_path = file_path
+
+    def validate(self):
+        for error in process.find_non_utf8_characters(self.file_path):
             self.results.append(error)
