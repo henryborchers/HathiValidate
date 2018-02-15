@@ -328,6 +328,7 @@ def find_errors_ocr(path) -> result.ResultSummary:
     Returns:
 
     """
+
     def ocr_filter(entry):
         if not entry.is_file():
             return False
@@ -339,6 +340,7 @@ def find_errors_ocr(path) -> result.ResultSummary:
             return False
 
         return True
+
     logger = logging.getLogger(__name__)
     alto_xsd = etree.XML(xml_schemes.get_scheme("alto"))
     alto_scheme = etree.XMLSchema(alto_xsd)
@@ -364,6 +366,7 @@ def find_errors_ocr(path) -> result.ResultSummary:
             summary_builder.add_error("Syntax error: {}".format(e))
     # summary_builder = result.SummaryDirector(source=path)
     return summary_builder.construct()
+
 
 def process_directory(path: str, require_page_data=True):
     warnings.warn("Use run_validation instead", DeprecationWarning)
@@ -418,7 +421,7 @@ def process_directory(path: str, require_page_data=True):
     return yml_errors + marc_errors + checksum_errors + extra_subdirectory_errors + missing_errors
 
 
-def run_validations(validators:typing.List[validator.absValidator]):
+def run_validations(validators: typing.List[validator.absValidator]):
     errors = []
     for tester in validators:
         tester.validate()
@@ -428,11 +431,19 @@ def run_validations(validators:typing.List[validator.absValidator]):
     return errors
 
 
-def run_validation(validation_test:validator.absValidator):
+def run_validation(validation_test: validator.absValidator):
     validation_test.validate()
     return validation_test.results
 
-#
-# def process_validation(validator: validator.absValidator, *args, **kwargs)->typing.List[result.ResultSummary]:
-#     validator.validate()
-#     return validator.results
+
+def find_non_utf8_characters(file_path: str) -> result.ResultSummary:
+    result_builder = result.SummaryDirector(source=file_path)
+    with open(file_path, "rb") as f:
+
+        for line_num, line in enumerate(f):
+            try:
+                line.decode("utf-8", errors="strict")
+            except UnicodeDecodeError as e:
+                result_builder.add_error("Line {} contains illegal characters. Details: {}".format(line_num + 1, e))
+
+    return result_builder.construct()
