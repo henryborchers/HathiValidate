@@ -62,7 +62,6 @@ class ValidateComponents(absValidator):
             found_files = True
             components.add(os.path.splitext(component_file.name)[0])
 
-
         if not found_files:
             raise FileNotFoundError("No files found with regex {}".format(self.component_regex))
 
@@ -137,4 +136,14 @@ class ValidateOCRFiles(absValidator):
 
     def validate(self):
         for error in process.find_errors_ocr(path=self.path):
+            self.results.append(error)
+
+
+class ValidateUTF8Files(absValidator):
+    def __init__(self, file_path):
+        super().__init__()
+        self.file_path = file_path
+
+    def validate(self):
+        for error in process.find_non_utf8_characters(self.file_path):
             self.results.append(error)
