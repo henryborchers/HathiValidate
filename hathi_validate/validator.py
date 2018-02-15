@@ -75,12 +75,15 @@ class ValidateComponents(absValidator):
                     logger.info("Missing {}".format(component_file_name))
         self.results = report_builder.construct()
 
-    def _component_filter(self, entry):
-        base, ext = os.path.splitext(entry.name)
-        if self._component_mask.fullmatch(base):
-            return True
+    def _component_filter(self, entry: os.DirEntry):
+        if not entry.is_file():
+            return False
 
-        return False
+        base, ext = os.path.splitext(entry.name)
+        if not self._component_mask.fullmatch(base):
+            return False
+
+        return True
 
 
 class ValidateExtraSubdirectories(absValidator):
