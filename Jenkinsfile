@@ -46,15 +46,15 @@ pipeline {
                     "PyTest": {
                         node(label: "Windows") {
                             checkout scm
-                            // bat "${tool 'Python3.6.3_Win64'} -m tox -e py36"
-                            bat "${tool 'Python3.6.3_Win64'} -m tox -e pytest -- --junitxml=reports/junit-${env.NODE_NAME}-pytest.xml --junit-prefix=${env.NODE_NAME}-pytest" //  --basetemp={envtmpdir}" 
+                            // bat "${tool 'CPython-3.6'} -m tox -e py36"
+                            bat "${tool 'CPython-3.6'} -m tox -e pytest -- --junitxml=reports/junit-${env.NODE_NAME}-pytest.xml --junit-prefix=${env.NODE_NAME}-pytest" //  --basetemp={envtmpdir}" 
                             junit "reports/junit-${env.NODE_NAME}-pytest.xml"
                          }
                     },
                     "Behave": {
                         node(label: "Windows") {
                             checkout scm
-                            bat "${tool 'Python3.6.3_Win64'} -m tox -e behave --  --junit --junit-directory reports" 
+                            bat "${tool 'CPython-3.6'} -m tox -e behave --  --junit --junit-directory reports" 
                             junit "reports/*.xml"
                         }
                     }
@@ -69,8 +69,8 @@ pipeline {
         //     steps {
         //         node(label: "Windows") {
         //             checkout scm
-        //             // bat "${tool 'Python3.6.3_Win64'} -m tox -e py36"
-        //             bat "${tool 'Python3.6.3_Win64'} -m tox -e py36 -- --junitxml=reports/junit-${env.NODE_NAME}-pytest.xml --junit-prefix=${env.NODE_NAME}-pytest" //  --basetemp={envtmpdir}" 
+        //             // bat "${tool 'CPython-3.6'} -m tox -e py36"
+        //             bat "${tool 'CPython-3.6'} -m tox -e py36 -- --junitxml=reports/junit-${env.NODE_NAME}-pytest.xml --junit-prefix=${env.NODE_NAME}-pytest" //  --basetemp={envtmpdir}" 
         //             junit "reports/junit-${env.NODE_NAME}-pytest.xml"
         //             }
                 
@@ -169,7 +169,7 @@ pipeline {
                         "Documentation": {
                             node(label: "Windows") {
                                 checkout scm
-                                bat "${tool 'Python3.6.3_Win64'} -m tox -e docs"
+                                bat "${tool 'CPython-3.6'} -m tox -e docs"
                                 script{
                                     // Multibranch jobs add the slash and add the branch to the job name. I need only the job name
                                     def alljob = env.JOB_NAME.tokenize("/") as String[]
@@ -215,7 +215,7 @@ pipeline {
         //             "Documentation": {
         //                 node(label: "Windows") {
         //                     checkout scm
-        //                     bat "${tool 'Python3.6.3_Win64'} -m tox -e docs"
+        //                     bat "${tool 'CPython-3.6'} -m tox -e docs"
         //                     dir('.tox/dist') {
         //                         zip archive: true, dir: 'html', glob: '', zipFile: 'sphinx_html_docs.zip'
         //                         dir("html"){
@@ -304,7 +304,7 @@ pipeline {
                 parallel(
                         "Source and Wheel formats": {
                             bat "call make.bat"
-                            // bat """${tool 'Python3.6.3_Win64'} -m venv venv
+                            // bat """${tool 'CPython-3.6'} -m venv venv
                             //         call venv\\Scripts\\activate.bat
                             //         pip install -r requirements.txt
                             //         pip install -r requirements-dev.txt
@@ -315,7 +315,7 @@ pipeline {
                             node(label: "Windows") {
                                 deleteDir()
                                 checkout scm
-                                bat "${tool 'Python3.6.3_Win64'} -m venv venv"
+                                bat "${tool 'CPython-3.6'} -m venv venv"
                                 bat "make freeze"
                                 dir("dist") {
                                     stash includes: "*.msi", name: "msi"
@@ -437,14 +437,14 @@ pipeline {
                     "Source": {
                         script {
                             def name = "HathiValidate"
-                            // def name = bat(returnStdout: true, script: "@${tool 'Python3.6.3_Win64'} setup.py --name").trim()
-                            def version = bat(returnStdout: true, script: "@${tool 'Python3.6.3_Win64'} setup.py --version").trim()
+                            // def name = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --name").trim()
+                            def version = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --version").trim()
                             node("Windows") {
                                 withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-                                    bat "${tool 'Python3.6.3_Win64'} -m devpi login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-                                    bat "${tool 'Python3.6.3_Win64'} -m devpi use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
+                                    bat "${tool 'CPython-3.6'} -m devpi login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
+                                    bat "${tool 'CPython-3.6'} -m devpi use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
                                     echo "Testing Source package from DevPi"
-                                    bat "${tool 'Python3.6.3_Win64'} -m devpi test --index http://devpi.library.illinois.edu/${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging ${name} -s tar.gz"
+                                    bat "${tool 'CPython-3.6'} -m devpi test --index http://devpi.library.illinois.edu/${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging ${name} -s tar.gz"
                                 }                                
                             }
                             echo "Finished testing Source package from DevPi"
@@ -453,14 +453,14 @@ pipeline {
                     "Wheel": {
                         script {
                             def name = "HathiValidate"
-                            // def name = bat(returnStdout: true, script: "@${tool 'Python3.6.3_Win64'} setup.py --name").trim()
-                            def version = bat(returnStdout: true, script: "@${tool 'Python3.6.3_Win64'} setup.py --version").trim()
+                            // def name = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --name").trim()
+                            def version = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --version").trim()
                             node("Windows") {
                                 withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-                                    bat "${tool 'Python3.6.3_Win64'} -m devpi login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-                                    bat "${tool 'Python3.6.3_Win64'} -m devpi use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
+                                    bat "${tool 'CPython-3.6'} -m devpi login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
+                                    bat "${tool 'CPython-3.6'} -m devpi use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
                                     echo "Testing Whl package from DevPi"
-                                    bat "${tool 'Python3.6.3_Win64'} -m devpi test --index https://devpi.library.illinois.edu/${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging ${name} -s whl"
+                                    bat "${tool 'CPython-3.6'} -m devpi test --index https://devpi.library.illinois.edu/${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging ${name} -s whl"
                             
                                 }
                             }
@@ -475,12 +475,12 @@ pipeline {
                     echo "It Worked. Pushing file to ${env.BRANCH_NAME} index"
                     script {
                         def name = "HathiValidate"
-                        // def name = bat(returnStdout: true, script: "@${tool 'Python3.6.3_Win64'} setup.py --name").trim()
-                        def version = bat(returnStdout: true, script: "@${tool 'Python3.6.3_Win64'} setup.py --version").trim()
+                        // def name = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --name").trim()
+                        def version = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --version").trim()
                         withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-                            bat "${tool 'Python3.6.3_Win64'} -m devpi login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-                            bat "${tool 'Python3.6.3_Win64'} -m devpi use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
-                            bat "${tool 'Python3.6.3_Win64'} -m devpi push ${name}==${version} ${DEVPI_USERNAME}/${env.BRANCH_NAME}"
+                            bat "${tool 'CPython-3.6'} -m devpi login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
+                            bat "${tool 'CPython-3.6'} -m devpi use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
+                            bat "${tool 'CPython-3.6'} -m devpi push ${name}==${version} ${DEVPI_USERNAME}/${env.BRANCH_NAME}"
                         }
 
                     }
@@ -497,12 +497,12 @@ pipeline {
             steps {
                 script {
                     def name = "HathiValidate"
-                    // def name = bat(returnStdout: true, script: "@${tool 'Python3.6.3_Win64'} setup.py --name").trim()
-                    def version = bat(returnStdout: true, script: "@${tool 'Python3.6.3_Win64'} setup.py --version").trim()
+                    // def name = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --name").trim()
+                    def version = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --version").trim()
                     withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-                        bat "${tool 'Python3.6.3_Win64'} -m devpi login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-                        bat "${tool 'Python3.6.3_Win64'} -m devpi use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
-                        bat "${tool 'Python3.6.3_Win64'} -m devpi push ${name}==${version} production/release"
+                        bat "${tool 'CPython-3.6'} -m devpi login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
+                        bat "${tool 'CPython-3.6'} -m devpi use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
+                        bat "${tool 'CPython-3.6'} -m devpi push ${name}==${version} production/release"
                     }
 
                 }
@@ -553,14 +553,14 @@ pipeline {
             script {
                 if(env.BRANCH_NAME == "master" || env.BRANCH_NAME == "dev") {
                     def name = "HathiValidate"
-                    // def name = bat(returnStdout: true, script: "@${tool 'Python3.6.3_Win64'} setup.py --name").trim()
-                    def version = bat(returnStdout: true, script: "@${tool 'Python3.6.3_Win64'} setup.py --version").trim()
+                    // def name = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --name").trim()
+                    def version = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --version").trim()
                     echo "name == ${name}"
                     echo "version == ${version}"
                     withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-                        bat "${tool 'Python3.6.3_Win64'} -m devpi login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-                        bat "${tool 'Python3.6.3_Win64'} -m devpi use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
-                        bat "${tool 'Python3.6.3_Win64'} -m devpi remove -y ${name}==${version}"
+                        bat "${tool 'CPython-3.6'} -m devpi login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
+                        bat "${tool 'CPython-3.6'} -m devpi use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
+                        bat "${tool 'CPython-3.6'} -m devpi remove -y ${name}==${version}"
                     }
                 }
             }
