@@ -351,7 +351,7 @@ def find_errors_ocr(path) -> result.ResultSummary:
             with open(xml_file.path, "r", encoding="utf8") as f:
                 raw_data = f.read()
 
-            doc = etree.fromstring(raw_data)
+            doc = etree.fromstring(raw_data.encode("utf8"))
 
             if not alto_scheme.validate(doc):
                 summary_builder.add_error("{} does not validate to ALTO scheme".format(xml_file.name))
