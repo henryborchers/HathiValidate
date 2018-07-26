@@ -2,12 +2,22 @@
 // Uses https://github.com/UIUCLibrary/Jenkins_utils
 import org.ds.*
 
+def PKG_NAME = "unknown"
+def PKG_VERSION = "unknown"
+def DOC_ZIP_FILENAME = "doc.zip"
+def junit_filename = "junit.xml"
+def REPORT_DIR = ""
+def VENV_ROOT = ""
+def VENV_PYTHON = ""
+def VENV_PIP = ""
+
 pipeline {
     agent {
         label "Windows"
     }
     options {
         disableConcurrentBuilds()  //each branch has 1 job running at a time
+        timeout(60)  // Timeout after 60 minutes. This shouldn't take this long but it hangs for some reason
     }
 
     // environment {
@@ -15,6 +25,7 @@ pipeline {
         //pytest_args = "--junitxml=reports/junit-{env:OS:UNKNOWN_OS}-{envname}.xml --junit-prefix={env:OS:UNKNOWN_OS}  --basetemp={envtmpdir}"
     // }
     parameters {
+        booleanParam(name: "FRESH_WORKSPACE", defaultValue: false, description: "Purge workspace before staring and checking out source")
         string(name: "PROJECT_NAME", defaultValue: "Hathi Validate", description: "Name given to the project")
         booleanParam(name: "UNIT_TESTS", defaultValue: true, description: "Run Automated Unit Tests")
         booleanParam(name: "ADDITIONAL_TESTS", defaultValue: true, description: "Run additional tests")
@@ -26,16 +37,155 @@ pipeline {
         string(name: 'URL_SUBFOLDER', defaultValue: "hathi_validate", description: 'The directory that the docs should be saved under')
     }
     stages {
-        stage("Cloning Source") {
+//        stage("Cloning Source") {
+//
+//            steps {
+//                deleteDir()
+//                checkout scm
+//                stash includes: '**', name: "Source", useDefaultExcludes: false
+//                stash includes: 'deployment.yml', name: "Deployment"
+//
+//            }
+//
+//        }
+        stage("Configure") {
+            stages{
+                stage("Purge all existing data in workspace"){
+                    when{
+                        equals expected: true, actual: params.FRESH_WORKSPACE
+                    }
+                    steps {
+                        deleteDir()
+                        bat "dir"
+                        echo "Cloning source"
+//                        dir("source"){
+                            checkout scm
+//                        }
+                    }
+                    post{
+                        success {
+                            bat "dir /s /B"
+                        }
+                    }
+                }
+                stage("Stashing important files for later"){
+                    steps{
+//                        dir("source"){
+                            stash includes: 'deployment.yml', name: "Deployment"
+//                        }
+                    }
+                }
+                stage("Cleanup extra dirs"){
+                    steps{
+                        dir("reports"){
+                            deleteDir()
+                            echo "Cleaned out reports directory"
+                            bat "dir"
+                        }
+                        dir("dist"){
+                            deleteDir()
+                            echo "Cleaned out dist directory"
+                            bat "dir"
+                        }
+                        dir("build"){
+                            deleteDir()
+                            echo "Cleaned out build directory"
+                            bat "dir"
+                        }
+                    }
+                }
+                stage("Creating virtualenv for building"){
+                    steps{
+                        bat "${tool 'CPython-3.6'} -m venv venv"
+                        script {
+                            try {
+                                bat "call venv\\Scripts\\python.exe -m pip install -U pip>=18.0"
+                            }
+                            catch (exc) {
+                                bat "${tool 'CPython-3.6'} -m venv venv"
+                                bat "call venv\\Scripts\\python.exe -m pip install -U pip>=18.0 --no-cache-dir"
+                            }
+                        }
+                        bat "venv\\Scripts\\pip.exe install devpi-client --upgrade-strategy only-if-needed"
+                        bat "venv\\Scripts\\pip.exe install tox mypy lxml pytest pytest-cov flake8 sphinx wheel --upgrade-strategy only-if-needed"
 
-            steps {
-                deleteDir()
-                checkout scm
-                stash includes: '**', name: "Source", useDefaultExcludes: false
-                stash includes: 'deployment.yml', name: "Deployment"
+                        tee("logs/pippackages_venv_${NODE_NAME}.log") {
+                            bat "venv\\Scripts\\pip.exe list"
+                        }
+                    }
+                    post{
+                        always{
+                            dir("logs"){
+                                script{
+                                    def log_files = findFiles glob: '**/pippackages_venv_*.log'
+                                    log_files.each { log_file ->
+                                        echo "Found ${log_file}"
+                                        archiveArtifacts artifacts: "${log_file}"
+                                        bat "del ${log_file}"
+                                    }
+                                }
+                            }
+                        }
+                        failure {
+                            deleteDir()
+                        }
+                    }
+                }
+                stage("Setting variables used by the rest of the build"){
+                    steps{
 
+                        script {
+                            // Set up the reports directory variable
+                            REPORT_DIR = "${pwd tmp: true}\\reports"
+                           dir("source"){
+                                PKG_NAME = bat(returnStdout: true, script: "@${tool 'CPython-3.6'}  setup.py --name").trim()
+                                PKG_VERSION = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --version").trim()
+                           }
+                        }
+
+                        script{
+                            DOC_ZIP_FILENAME = "${PKG_NAME}-${PKG_VERSION}.doc.zip"
+                            junit_filename = "junit-${env.NODE_NAME}-${env.GIT_COMMIT.substring(0,7)}-pytest.xml"
+                        }
+
+
+
+
+                        script{
+                            VENV_ROOT = "${WORKSPACE}\\venv\\"
+
+                            VENV_PYTHON = "${WORKSPACE}\\venv\\Scripts\\python.exe"
+                            bat "${VENV_PYTHON} --version"
+
+                            VENV_PIP = "${WORKSPACE}\\venv\\Scripts\\pip.exe"
+                            bat "${VENV_PIP} --version"
+                        }
+
+
+                        bat "venv\\Scripts\\devpi use https://devpi.library.illinois.edu"
+                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
+                            bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
+                        }
+                        bat "dir"
+                    }
+                    post{
+                        always{
+                            bat "dir /s / B"
+                            echo """Name                            = ${PKG_NAME}
+        Version                         = ${PKG_VERSION}
+        Report Directory                = ${REPORT_DIR}
+        documentation zip file          = ${DOC_ZIP_FILENAME}
+        Python virtual environment path = ${VENV_ROOT}
+        VirtualEnv Python executable    = ${VENV_PYTHON}
+        VirtualEnv Pip executable       = ${VENV_PIP}
+        junit_filename                  = ${junit_filename}
+        """
+
+                        }
+
+                    }
+                }
             }
-
         }
         stage("Unit tests") {
             when {
