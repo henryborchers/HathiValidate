@@ -303,3 +303,46 @@ class Test_is_same_hash():
             "D4AB65AE47A6E57194D6847B22DCB14C",
             "d4ab65ae47a6e57194d6847b22dcb14c",
             "00000000000000000000000000000000") is False
+
+
+@pytest.fixture()
+def file_with_only_utf8(tmpdir):
+    p = tmpdir.mkdir("utf8_tests").join("good.xml")
+    UTF_CHAR_LIST = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEF" \
+                    "GHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~€‚ƒ„…†‡" \
+                    "ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ ¡¢£¤¥¦§¨©ª«¬ ®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈ" \
+                    "ÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿĀāĂăĄąĆćĈĉ" \
+                    "ĊċČčĎďĐđĒēĔĕĖėĘęĚěĜĝĞğĠġĢģĤĥĦħĨĩĪīĬĭĮįİıĲĳĴĵĶķĸĹĺĻļĽľĿŀŁłŃńŅņŇňŉŊ" \
+                    "ŋŌōŎŏŐőŒœŔŕŖŗŘřŚśŜŝŞşŠšŢţŤťŦŧŨũŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽžſƀƁƂƃƄƅƆƇƈƉƊƋ" \
+                    "ƌƍƎƏƐƑƒƓƔƕƖƗƘƙƚƛƜƝƞƟƠơƢƣƤƥƦƧƨƩƪƫƬƭƮƯưƱƲƳƴƵƶƷƸƹƺƻƼƽƾƿǀǁǂǃǄǅǆǇǈǉǊǋǌ" \
+                    "ǍǎǏǐǑǒǓǔǕǖǗǘǙǚǛǜǝǞǟǠǡǢǣǤǥǦǧǨǩǪǫǬǭǮǯǰǱǲǳǴǵǶǷǸǹǺǻǼǽǾǿȀȁȂȃȄȅȆȇȈȉȊȋȌȍ" \
+                    "ȎȏȐȑȒȓȔȕȖȗȘșȚțȜȝȞȟȠȡȢȣȤȥȦȧȨȩȪȫȬȭȮȯȰȱȲȳȴȵȶȷȸȹȺȻȼȽȾȿɀɁɂɃɄɅɆɇɈɉɊɋɌɍɎ" \
+                    "ɏɐɑɒɓɔɕɖɗɘəɚɛɜɝɞɟɠɡɢɣɤɥɦɧɨɩɪɫɬɭɮɯɰɱɲɳɴɵɶɷɸɹɺɻɼɽɾɿʀʁʂʃʄʅʆʇʈʉʊʋʌʍʎʏ" \
+                    "ʐʑʒʓʔʕʖʗʘʙʚʛʜʝʞʟʠʡʢʣʤʥʦʧʨʩʪʫʬʭʮʯʰʱʲʳʴʵʶʷʸʹʺʻʼ"
+
+    with open(p, "w", encoding="utf8") as wf:
+        for char in UTF_CHAR_LIST:
+            wf.write("{}\n".format(char))
+    return p
+
+
+def test_utf_check_valid(file_with_only_utf8):
+    result = process.find_non_utf8_characters(file_with_only_utf8)
+    assert len(result.results) == 0
+
+
+@pytest.fixture()
+def file_with_utf8_and_non_utf8(tmpdir):
+    p = tmpdir.mkdir("utf8_tests").join("non_utf8.xml")
+    UTF_CHAR_LIST = "abc"
+    with open(p, "wb") as wf:
+
+        for char in UTF_CHAR_LIST:
+            wf.write(bytes(char, encoding="utf8"))
+            wf.write(b"\n")
+        wf.write(b'\x80')
+    return p
+
+def test_utf_check_invalid(file_with_utf8_and_non_utf8):
+    result = process.find_non_utf8_characters(file_with_utf8_and_non_utf8)
+    assert len(result.results) == 1
