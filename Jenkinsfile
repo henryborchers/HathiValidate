@@ -411,51 +411,51 @@ pipeline {
         // //     }
 
         // // }
-        stage("Additional tests") {
-            when {
-                expression { params.ADDITIONAL_TESTS == true }
-            }
+        // stage("Additional tests") {
+        //     when {
+        //         expression { params.ADDITIONAL_TESTS == true }
+        //     }
 
-            steps {
-                parallel(
-                        "Documentation": {
-                            node(label: "Windows") {
-                                checkout scm
-                                bat "${tool 'CPython-3.6'} -m tox -e docs"
-                                script{
-                                    // Multibranch jobs add the slash and add the branch to the job name. I need only the job name
-                                    def alljob = env.JOB_NAME.tokenize("/") as String[]
-                                    def project_name = alljob[0]
-                                    dir('.tox/dist') {
-                                        zip archive: true, dir: 'html', glob: '', zipFile: "${project_name}-${env.BRANCH_NAME}-docs-html-${env.GIT_COMMIT.substring(0,6)}.zip"
-                                        dir("html"){
-                                            stash includes: '**', name: "HTML Documentation"
-                                        }
-                                    }
-                                }
-                                publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: '.tox/dist/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
-                            }
-                        },
-                        "MyPy": {
-                            node(label: "Windows") {
-                                script {
-                                    checkout scm
-                                    def mypy_rc = bat returnStatus: true, script: "make test-mypy --html-report reports/mypy_report --junit-xml=reports/junit-${env.NODE_NAME}-mypy.xml"
+        //     steps {
+        //         parallel(
+        //                 "Documentation": {
+        //                     node(label: "Windows") {
+        //                         checkout scm
+        //                         bat "${tool 'CPython-3.6'} -m tox -e docs"
+        //                         script{
+        //                             // Multibranch jobs add the slash and add the branch to the job name. I need only the job name
+        //                             def alljob = env.JOB_NAME.tokenize("/") as String[]
+        //                             def project_name = alljob[0]
+        //                             dir('.tox/dist') {
+        //                                 zip archive: true, dir: 'html', glob: '', zipFile: "${project_name}-${env.BRANCH_NAME}-docs-html-${env.GIT_COMMIT.substring(0,6)}.zip"
+        //                                 dir("html"){
+        //                                     stash includes: '**', name: "HTML Documentation"
+        //                                 }
+        //                             }
+        //                         }
+        //                         publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: '.tox/dist/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
+        //                     }
+        //                 },
+        //                 "MyPy": {
+        //                     node(label: "Windows") {
+        //                         script {
+        //                             checkout scm
+        //                             def mypy_rc = bat returnStatus: true, script: "make test-mypy --html-report reports/mypy_report --junit-xml=reports/junit-${env.NODE_NAME}-mypy.xml"
                                     
-                                    if (mypy_rc == 0) {
-                                        echo "MyPy found no issues"
+        //                             if (mypy_rc == 0) {
+        //                                 echo "MyPy found no issues"
                                         
-                                    } else {
-                                        echo "MyPy complained with an exit code of ${mypy_rc}."
-                                    }
-                                    junit "reports/junit-${env.NODE_NAME}-mypy.xml"
-                                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/mypy_report', reportFiles: 'index.html', reportName: 'MyPy', reportTitles: ''])
-                                }
-                            }
-                        }
-                )
-            }
-        }
+        //                             } else {
+        //                                 echo "MyPy complained with an exit code of ${mypy_rc}."
+        //                             }
+        //                             junit "reports/junit-${env.NODE_NAME}-mypy.xml"
+        //                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/mypy_report', reportFiles: 'index.html', reportName: 'MyPy', reportTitles: ''])
+        //                         }
+        //                     }
+        //                 }
+        //         )
+        //     }
+        // }
 
         // stage("Additional tests") {
         //     when {
