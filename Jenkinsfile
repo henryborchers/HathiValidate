@@ -490,12 +490,6 @@ pipeline {
                         equals expected: true, actual: params.DEPLOY_DOCS
                     }
                     steps{
-                        script {
-                            if(!params.BUILD_DOCS){
-                                bat "pipenv run python setup.py build_sphinx"
-                            }
-                        }
-
                         dir("build/docs/html/"){
                             input 'Update project documentation?'
                             sshPublisher(
@@ -652,64 +646,6 @@ pipeline {
             }
         }
     }
-//        stage("Release to DevPi production") {
-//            when {
-//                expression { params.RELEASE != "None" && env.BRANCH_NAME == "master" }
-//            }
-//            steps {
-//                script {
-//                    def name = "HathiValidate"
-//                    // def name = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --name").trim()
-//                    def version = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --version").trim()
-//                    withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-//                        bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-//                        bat "venv\\Scripts\\devpi.exe use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
-//                        bat "venv\\Scripts\\devpi.exe push ${name}==${version} production/release"
-//                    }
-//
-//                }
-//                node("Linux"){
-//                    updateOnlineDocs url_subdomain: params.URL_SUBFOLDER, stash_name: "HTML Documentation"
-//                }
-//            }
-//        }
-//
-//        stage("Deploy to SCCM") {
-//            when {
-//                expression { params.RELEASE == "Release_to_devpi_and_sccm"}
-//            }
-//
-//            steps {
-//                node("Linux"){
-//                    unstash "msi"
-//                    deployStash("msi", "${env.SCCM_STAGING_FOLDER}/${params.PROJECT_NAME}/")
-//                    input("Deploy to production?")
-//                    deployStash("msi", "${env.SCCM_UPLOAD_FOLDER}")
-//                }
-//
-//            }
-//            post {
-//                success {
-//                    script{
-//                        def  deployment_request = requestDeploy this, "deployment.yml"
-//                        echo deployment_request
-//                        writeFile file: "deployment_request.txt", text: deployment_request
-//                        archiveArtifacts artifacts: "deployment_request.txt"
-//                    }
-//                }
-//            }
-//        }
-//        stage("Update online documentation") {
-//            agent any
-//            when {
-//                expression { params.UPDATE_DOCS == true }
-//            }
-//
-//            steps {
-//                updateOnlineDocs url_subdomain: params.URL_SUBFOLDER, stash_name: "HTML Documentation"
-//            }
-//        }
-//    }
     post {
         cleanup{
 
