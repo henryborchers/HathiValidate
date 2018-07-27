@@ -314,23 +314,11 @@ pipeline {
                     }
                 }
                 stage("Windows CX_Freeze MSI"){
-                    agent{
-                        node {
-                            label "Windows"
-                        }
-                    }
-                    options {
-                        skipDefaultCheckout true
-                    }
                     steps{
-                        bat "dir"
-                        deleteDir()
-                        bat "dir"
-                        checkout scm
-                        bat "dir /s / B"
-                        bat "${tool 'CPython-3.6'} -m venv venv"
-                        bat "venv\\Scripts\\pip.exe install -r requirements.txt -r requirements-dev.txt -r requirements-freeze.txt"
-                        bat "venv\\Scripts\\python cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir build/msi"
+                        dir("source"){
+//                            bat "venv\\Scripts\\pip.exe install -r requirements.txt -r requirements-dev.txt -r requirements-freeze.txt"
+                            bat "venv\\Scripts\\python cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir ${WORKSPACE}/build/msi --dist-dir ${WORKSPACE}/dist"
+                        }
                         bat "build\\msi\\hathivalidate.exe --pytest"
                         // bat "make freeze"
 
@@ -344,9 +332,9 @@ pipeline {
                             }
                         }
                         cleanup{
-                            bat "dir"
-                            deleteDir()
-                            bat "dir"
+                            dir("build/msi") {
+                                deleteDir()
+                            }
                         }
                     }
                 }
