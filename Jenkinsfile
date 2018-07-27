@@ -547,55 +547,112 @@ pipeline {
         //         )
         //     }
         // }
+        // stage("Packaging") {
+        //     when {
+        //         expression { params.DEPLOY_DEVPI == true || params.RELEASE != "None"}
+        //     }
+
+        //     steps {
+        //         parallel(
+        //                 "Source and Wheel formats": {
+        //                     bat "call make.bat"
+        //                     // bat """${tool 'CPython-3.6'} -m venv venv
+        //                     //         call venv\\Scripts\\activate.bat
+        //                     //         pip install -r requirements.txt
+        //                     //         pip install -r requirements-dev.txt
+        //                     //         python setup.py sdist bdist_wheel
+        //                     //         """
+        //                 },
+        //                 "Windows CX_Freeze MSI": {
+        //                     node(label: "Windows") {
+        //                         deleteDir()
+        //                         checkout scm
+        //                         bat "${tool 'CPython-3.6'} -m venv venv"
+        //                         bat "make freeze"
+        //                         dir("dist") {
+        //                             stash includes: "*.msi", name: "msi"
+                                    
+        //                         }
+
+        //                     }
+        //                     node(label: "Windows") {
+        //                         deleteDir()
+        //                         git url: 'https://github.com/UIUCLibrary/ValidateMSI.git'
+        //                         unstash "msi"
+        //                         bat "call validate.bat -i"
+        //                         archiveArtifacts artifacts: "*.msi", fingerprint: true
+                                
+        //                     }
+        //                 },
+        //         )
+        //     }
+        //     post {
+        //       success {
+        //           dir("dist"){
+        //               archiveArtifacts artifacts: "*.whl", fingerprint: true
+        //               archiveArtifacts artifacts: "*.tar.gz", fingerprint: true
+                      
+        //         }
+        //       }
+        //     }
+            
+        // }
         stage("Packaging") {
             when {
                 expression { params.DEPLOY_DEVPI == true || params.RELEASE != "None"}
             }
-
-            steps {
-                parallel(
-                        "Source and Wheel formats": {
-                            bat "call make.bat"
-                            // bat """${tool 'CPython-3.6'} -m venv venv
-                            //         call venv\\Scripts\\activate.bat
-                            //         pip install -r requirements.txt
-                            //         pip install -r requirements-dev.txt
-                            //         python setup.py sdist bdist_wheel
-                            //         """
-                        },
-                        "Windows CX_Freeze MSI": {
-                            node(label: "Windows") {
-                                deleteDir()
-                                checkout scm
-                                bat "${tool 'CPython-3.6'} -m venv venv"
-                                bat "make freeze"
-                                dir("dist") {
-                                    stash includes: "*.msi", name: "msi"
-                                    
-                                }
-
+            parallel {
+                stage("Source and Wheel formats"){
+                    steps{
+                        dir("source"){
+                            bat "${WORKSPACE}\\venv\\scripts\\python.exe setup.py sdist -d ${WORKSPACE}\\dist bdist_wheel -d ${WORKSPACE}\\dist"
+                        }
+                        
+                    }
+                    post{
+                        success{
+                            dir("dist"){
+                                archiveArtifacts artifacts: "*.whl", fingerprint: true
+                                archiveArtifacts artifacts: "*.tar.gz", fingerprint: true
                             }
-                            node(label: "Windows") {
-                                deleteDir()
-                                git url: 'https://github.com/UIUCLibrary/ValidateMSI.git'
-                                unstash "msi"
-                                bat "call validate.bat -i"
-                                archiveArtifacts artifacts: "*.msi", fingerprint: true
-                                
-                            }
-                        },
-                )
-            }
-            post {
-              success {
-                  dir("dist"){
-                      archiveArtifacts artifacts: "*.whl", fingerprint: true
-                      archiveArtifacts artifacts: "*.tar.gz", fingerprint: true
-                      
+                        }
+                    }
                 }
-              }
+                stage("Windows CX_Freeze MSI"){
+                    agent{
+                        node {
+                            label "Windows"
+                        }
+                    }
+                    options {
+                        skipDefaultCheckout true
+                    }
+                    steps{
+                        bat "dir"
+                        deleteDir()
+                        bat "dir"
+                        checkout scm
+                        bat "dir /s / B"
+                        bat "${tool 'CPython-3.6'} -m venv venv"
+                        bat "make freeze"
+
+
+                    }
+                    post{
+                        success{
+                            dir("dist") {
+                                stash includes: "*.msi", name: "msi"
+                                archiveArtifacts artifacts: "*.msi", fingerprint: true
+                            }
+                        }
+                        cleanup{
+                            bat "dir"
+                            deleteDir()
+                            bat "dir"
+                        }
+                    }
+                }
             }
-            
         }
         // stage("Deploy - Staging") {
         //     agent any
