@@ -634,7 +634,10 @@ pipeline {
                         checkout scm
                         bat "dir /s / B"
                         bat "${tool 'CPython-3.6'} -m venv venv"
-                        bat "make freeze"
+                        bat "venv\\Scripts\\pip.exe install -r requirements.txt -r requirements-dev.txt -r requirements-freeze.txt"
+                        bat "venv\\Scripts\\python cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir build/msi"
+                        bat "build\\msi\\hathivalidate.exe --pytest"
+                        // bat "make freeze"
 
 
                     }
