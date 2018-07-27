@@ -18,6 +18,7 @@ pipeline {
     options {
         disableConcurrentBuilds()  //each branch has 1 job running at a time
         timeout(60)  // Timeout after 60 minutes. This shouldn't take this long but it hangs for some reason
+        checkoutToSubdirectory("source")
     }
 
     // environment {
@@ -58,9 +59,9 @@ pipeline {
                         deleteDir()
                         bat "dir"
                         echo "Cloning source"
-//                        dir("source"){
+                        dir("source"){
                             checkout scm
-//                        }
+                        }
                     }
                     post{
                         success {
@@ -70,9 +71,9 @@ pipeline {
                 }
                 stage("Stashing important files for later"){
                     steps{
-//                        dir("source"){
+                       dir("source"){
                             stash includes: 'deployment.yml', name: "Deployment"
-//                        }
+                       }
                     }
                 }
                 stage("Cleanup extra dirs"){
@@ -137,10 +138,10 @@ pipeline {
                         script {
                             // Set up the reports directory variable
                             REPORT_DIR = "${pwd tmp: true}\\reports"
-//                           dir("source"){
+                          dir("source"){
                                 PKG_NAME = bat(returnStdout: true, script: "@${tool 'CPython-3.6'}  setup.py --name").trim()
                                 PKG_VERSION = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --version").trim()
-//                           }
+                          }
                         }
 
                         script{
@@ -186,32 +187,132 @@ pipeline {
                     }
                 }
             }
-        }
-        stage("Unit tests") {
-            when {
-                expression { params.UNIT_TESTS == true }
+            post {
+                success{
+                    tee("logs/workspace_files_${NODE_NAME}.log") {
+                        bat "dir /s /B"
+                    }
+                }
             }
-            steps {
-                parallel(
-                    "PyTest": {
-                        node(label: "Windows") {
-                            checkout scm
-                            // bat "${tool 'CPython-3.6'} -m tox -e py36"
-                            bat "${tool 'CPython-3.6'} -m tox -e pytest -- --junitxml=reports/junit-${env.NODE_NAME}-pytest.xml --junit-prefix=${env.NODE_NAME}-pytest" //  --basetemp={envtmpdir}" 
-                            junit "reports/junit-${env.NODE_NAME}-pytest.xml"
-                         }
-                    },
-                    "Behave": {
-                        node(label: "Windows") {
-                            checkout scm
-                            bat "${tool 'CPython-3.6'} -m tox -e behave --  --junit --junit-directory reports" 
-                            junit "reports/*.xml"
+        }
+        stage("Build"){
+            stages{
+                stage("Python Package"){
+                    steps {
+                        tee("logs/build.log") {
+                            dir("source"){
+                                bat "${WORKSPACE}\\venv\\Scripts\\python.exe setup.py build -b ${WORKSPACE}\\build"
+                            }
+
                         }
                     }
-                )
-                
+                }
+                stage("Docs"){
+                    steps{
+                        echo "Building docs on ${env.NODE_NAME}"
+                        tee("logs/build_sphinx.log") {
+                            dir("build/lib"){
+                                bat "${WORKSPACE}\\venv\\Scripts\\sphinx-build.exe -b html ${WORKSPACE}\\source\\docs\\source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\doctrees"
+                            }
+                        }
+                    }
+                    post{
+                        always {
+                            dir("logs"){
+                                script{
+                                    def log_files = findFiles glob: '**/*.log'
+                                    log_files.each { log_file ->
+                                        echo "Found ${log_file}"
+                                        archiveArtifacts artifacts: "${log_file}"
+                                        bat "del ${log_file}"
+                                    }
+                                }
+                            }
+                        }
+                        success{
+                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
+                            dir("${WORKSPACE}/dist"){
+                                zip archive: true, dir: "${WORKSPACE}/build/docs/html", glob: '', zipFile: "${DOC_ZIP_FILENAME}"
+                            }
+                        }
+                    }
+                }
             }
         }
+        stage("Tests") {
+
+            parallel {
+                stage("PyTest"){
+                    when {
+                        equals expected: true, actual: params.UNIT_TESTS
+                    }
+                    steps{
+                        dir("source"){
+                            bat "${WORKSPACE}\\venv\\Scripts\\pytest.exe --junitxml=${WORKSPACE}/reports/junit-${env.NODE_NAME}-pytest.xml --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/coverage/ --cov=MedusaPackager" //  --basetemp={envtmpdir}"
+                        }
+
+                    }
+                    post {
+                        always{
+                            junit "reports/junit-${env.NODE_NAME}-pytest.xml"
+                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/coverage', reportFiles: 'index.html', reportName: 'Coverage', reportTitles: ''])
+                        }
+                    }
+                }
+                stage("MyPy"){
+                    when{
+                        equals expected: true, actual: params.ADDITIONAL_TESTS
+                    }
+                    steps{
+                        dir("source") {
+                            bat "${WORKSPACE}\\venv\\Scripts\\mypy.exe -p MedusaPackager --junit-xml=${WORKSPACE}/junit-${env.NODE_NAME}-mypy.xml --html-report ${WORKSPACE}/reports/mypy_html"
+                        }
+                    }
+                    post{
+                        always {
+                            junit "junit-${env.NODE_NAME}-mypy.xml"
+                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/mypy_html', reportFiles: 'index.html', reportName: 'MyPy', reportTitles: ''])
+                        }
+                    }
+                }
+                stage("Documentation"){
+                    when{
+                        equals expected: true, actual: params.ADDITIONAL_TESTS
+                    }
+                    steps{
+                        dir("source"){
+                            bat "${WORKSPACE}\\venv\\Scripts\\sphinx-build.exe -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -v"
+                        }
+                    }
+
+                }
+            }
+        }
+        // stage("Unit tests") {
+        //     when {
+        //         expression { params.UNIT_TESTS == true }
+        //     }
+        //     steps {
+        //         parallel(
+        //             "PyTest": {
+        //                 node(label: "Windows") {
+        //                     checkout scm
+        //                     // bat "${tool 'CPython-3.6'} -m tox -e py36"
+        //                     bat "${tool 'CPython-3.6'} -m tox -e pytest -- --junitxml=reports/junit-${env.NODE_NAME}-pytest.xml --junit-prefix=${env.NODE_NAME}-pytest" //  --basetemp={envtmpdir}" 
+        //                     junit "reports/junit-${env.NODE_NAME}-pytest.xml"
+        //                  }
+        //             },
+        //             "Behave": {
+        //                 node(label: "Windows") {
+        //                     checkout scm
+        //                     bat "${tool 'CPython-3.6'} -m tox -e behave --  --junit --junit-directory reports" 
+        //                     junit "reports/*.xml"
+        //                 }
+        //             }
+        //         )
+                
+        //     }
+        // }
         // stage("Unit tests") {
         //     when {
         //         expression { params.UNIT_TESTS == true }
