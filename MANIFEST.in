@@ -6,3 +6,4 @@ recursive-exclude * __pycache__
 recursive-exclude * *.pyc
 
 recursive-include docs *
+recursive-include features *.feature *.py
