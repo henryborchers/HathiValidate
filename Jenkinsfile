@@ -112,7 +112,7 @@ pipeline {
                         }
                         bat "venv\\Scripts\\pip.exe install devpi-client --upgrade-strategy only-if-needed"
                         bat "venv\\Scripts\\pip.exe install tox mypy lxml pytest pytest-cov flake8 sphinx wheel --upgrade-strategy only-if-needed"
-                        bat "venv\\Scripts\\pip.exe install -r source\\requirements.txt -r source\\requirements-dev.txt --upgrade-strategy only-if-needed"
+                        bat "venv\\Scripts\\pip.exe install -r source\\requirements.txt -r source\\requirements-dev.txt -r source\\requirements-freeze.txt --upgrade-strategy only-if-needed"
 
                         tee("logs/pippackages_venv_${NODE_NAME}.log") {
                             bat "venv\\Scripts\\pip.exe list"
@@ -314,23 +314,11 @@ pipeline {
                     }
                 }
                 stage("Windows CX_Freeze MSI"){
-                    agent{
-                        node {
-                            label "Windows"
-                        }
-                    }
-                    options {
-                        skipDefaultCheckout true
-                    }
                     steps{
-                        bat "dir"
-                        deleteDir()
-                        bat "dir"
-                        checkout scm
-                        bat "dir /s / B"
-                        bat "${tool 'CPython-3.6'} -m venv venv"
-                        bat "venv\\Scripts\\pip.exe install -r requirements.txt -r requirements-dev.txt -r requirements-freeze.txt"
-                        bat "venv\\Scripts\\python cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir build/msi"
+                        dir("source"){
+//                            bat "venv\\Scripts\\pip.exe install -r requirements.txt -r requirements-dev.txt -r requirements-freeze.txt"
+                            bat "${WORKSPACE}\\venv\\Scripts\\python cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir ${WORKSPACE}/build/msi --dist-dir ${WORKSPACE}/dist"
+                        }
                         bat "build\\msi\\hathivalidate.exe --pytest"
                         // bat "make freeze"
 
@@ -344,9 +332,9 @@ pipeline {
                             }
                         }
                         cleanup{
-                            bat "dir"
-                            deleteDir()
-                            bat "dir"
+                            dir("build/msi") {
+                                deleteDir()
+                            }
                         }
                     }
                 }
@@ -490,12 +478,6 @@ pipeline {
                         equals expected: true, actual: params.DEPLOY_DOCS
                     }
                     steps{
-                        script {
-                            if(!params.BUILD_DOCS){
-                                bat "pipenv run python setup.py build_sphinx"
-                            }
-                        }
-
                         dir("build/docs/html/"){
                             input 'Update project documentation?'
                             sshPublisher(
@@ -652,64 +634,6 @@ pipeline {
             }
         }
     }
-//        stage("Release to DevPi production") {
-//            when {
-//                expression { params.RELEASE != "None" && env.BRANCH_NAME == "master" }
-//            }
-//            steps {
-//                script {
-//                    def name = "HathiValidate"
-//                    // def name = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --name").trim()
-//                    def version = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --version").trim()
-//                    withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-//                        bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-//                        bat "venv\\Scripts\\devpi.exe use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
-//                        bat "venv\\Scripts\\devpi.exe push ${name}==${version} production/release"
-//                    }
-//
-//                }
-//                node("Linux"){
-//                    updateOnlineDocs url_subdomain: params.URL_SUBFOLDER, stash_name: "HTML Documentation"
-//                }
-//            }
-//        }
-//
-//        stage("Deploy to SCCM") {
-//            when {
-//                expression { params.RELEASE == "Release_to_devpi_and_sccm"}
-//            }
-//
-//            steps {
-//                node("Linux"){
-//                    unstash "msi"
-//                    deployStash("msi", "${env.SCCM_STAGING_FOLDER}/${params.PROJECT_NAME}/")
-//                    input("Deploy to production?")
-//                    deployStash("msi", "${env.SCCM_UPLOAD_FOLDER}")
-//                }
-//
-//            }
-//            post {
-//                success {
-//                    script{
-//                        def  deployment_request = requestDeploy this, "deployment.yml"
-//                        echo deployment_request
-//                        writeFile file: "deployment_request.txt", text: deployment_request
-//                        archiveArtifacts artifacts: "deployment_request.txt"
-//                    }
-//                }
-//            }
-//        }
-//        stage("Update online documentation") {
-//            agent any
-//            when {
-//                expression { params.UPDATE_DOCS == true }
-//            }
-//
-//            steps {
-//                updateOnlineDocs url_subdomain: params.URL_SUBFOLDER, stash_name: "HTML Documentation"
-//            }
-//        }
-//    }
     post {
         cleanup{
 
