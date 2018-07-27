@@ -551,9 +551,9 @@ pipeline {
                             // def version = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --version").trim()
                             input "Release ${PKG_NAME} ${PKG_VERSION} to DevPi Production?"
                             withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-                                bat "devpi login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-                                bat "devpi use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
-                                bat "devpi push ${PKG_NAME}==${PKG_VERSION} production/release"
+                                bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
+                                bat "venv\\Scripts\\devpi.exe use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
+                                bat "venv\\Scripts\\devpi.exe push ${PKG_NAME}==${PKG_VERSION} production/release"
                             }
                         }
                     }
