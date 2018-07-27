@@ -1,6 +1,9 @@
 # Include the license file
-include LICENSE tox.ini README.rst requirements.txt
+include LICENSE tox.ini README.rst requirements.txt requirements-dev.txt
 
-recursive-include tests *
+recursive-include tests *.py
+recursive-exclude * __pycache__
+recursive-exclude * *.pyc
+
 recursive-include docs *
 recursive-include features *.feature *.py
