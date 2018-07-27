@@ -33,8 +33,11 @@ pipeline {
         // booleanParam(name: "PACKAGE", defaultValue: true, description: "Create a Packages")
         // booleanParam(name: "DEPLOY_SCCM", defaultValue: false, description: "Deploy SCCM")
         booleanParam(name: "DEPLOY_DEVPI", defaultValue: true, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
-        choice(choices: 'None\nRelease_to_devpi_only\nRelease_to_devpi_and_sccm\n', description: "Release the build to production. Only available in the Master branch", name: 'RELEASE')
-        booleanParam(name: "UPDATE_DOCS", defaultValue: false, description: "Update the documentation")
+        booleanParam(name: "DEPLOY_DEVPI_PRODUCTION", defaultValue: false, description: "Deploy to https://devpi.library.illinois.edu/production/release")
+        booleanParam(name: "DEPLOY_HATHI_TOOL_BETA", defaultValue: false, description: "Deploy standalone to \\\\storage.library.illinois.edu\\HathiTrust\\Tools\\beta\\")
+        booleanParam(name: "DEPLOY_SCCM", defaultValue: false, description: "Request deployment of MSI installer to SCCM")
+        booleanParam(name: "DEPLOY_DOCS", defaultValue: false, description: "Update online documentation")
+//        booleanParam(name: "UPDATE_DOCS", defaultValue: false, description: "Update the documentation")
         string(name: 'URL_SUBFOLDER', defaultValue: "hathi_validate", description: 'The directory that the docs should be saved under')
     }
     stages {
@@ -480,64 +483,233 @@ pipeline {
                 }
             }
         }
-        stage("Release to DevPi production") {
-            when {
-                expression { params.RELEASE != "None" && env.BRANCH_NAME == "master" }
-            }
-            steps {
-                script {
-                    def name = "HathiValidate"
-                    // def name = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --name").trim()
-                    def version = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --version").trim()
-                    withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-                        bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-                        bat "venv\\Scripts\\devpi.exe use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
-                        bat "venv\\Scripts\\devpi.exe push ${name}==${version} production/release"
+        stage("Deploy"){
+            parallel {
+                stage("Deploy Online Documentation") {
+                    when{
+                        equals expected: true, actual: params.DEPLOY_DOCS
                     }
+                    steps{
+                        script {
+                            if(!params.BUILD_DOCS){
+                                bat "pipenv run python setup.py build_sphinx"
+                            }
+                        }
 
-                }
-                node("Linux"){
-                    updateOnlineDocs url_subdomain: params.URL_SUBFOLDER, stash_name: "HTML Documentation"
-                }
-            }
-        }
-
-        stage("Deploy to SCCM") {
-            when {
-                expression { params.RELEASE == "Release_to_devpi_and_sccm"}
-            }
-
-            steps {
-                node("Linux"){
-                    unstash "msi"
-                    deployStash("msi", "${env.SCCM_STAGING_FOLDER}/${params.PROJECT_NAME}/")
-                    input("Deploy to production?")
-                    deployStash("msi", "${env.SCCM_UPLOAD_FOLDER}")
-                }
-
-            }
-            post {
-                success {
-                    script{
-                        def  deployment_request = requestDeploy this, "deployment.yml"
-                        echo deployment_request
-                        writeFile file: "deployment_request.txt", text: deployment_request
-                        archiveArtifacts artifacts: "deployment_request.txt"
+                        dir("build/docs/html/"){
+                            input 'Update project documentation?'
+                            sshPublisher(
+                                publishers: [
+                                    sshPublisherDesc(
+                                        configName: 'apache-ns - lib-dccuser-updater',
+                                        sshLabel: [label: 'Linux'],
+                                        transfers: [sshTransfer(excludes: '',
+                                        execCommand: '',
+                                        execTimeout: 120000,
+                                        flatten: false,
+                                        makeEmptyDirs: false,
+                                        noDefaultExcludes: false,
+                                        patternSeparator: '[, ]+',
+                                        remoteDirectory: "${params.DEPLOY_DOCS_URL_SUBFOLDER}",
+                                        remoteDirectorySDF: false,
+                                        removePrefix: '',
+                                        sourceFiles: '**')],
+                                    usePromotionTimestamp: false,
+                                    useWorkspaceInPromotion: false,
+                                    verbose: true
+                                    )
+                                ]
+                            )
+                        }
                     }
                 }
-            }
-        }
-        stage("Update online documentation") {
-            agent any
-            when {
-                expression { params.UPDATE_DOCS == true }
-            }
+                stage("Deploy standalone to Hathi tools Beta"){
+                    when {
+                        allOf{
+                            equals expected: true, actual: params.DEPLOY_HATHI_TOOL_BETA
+                            equals expected: true, actual: params.PACKAGE_WINDOWS_STANDALONE
+                        }
+                    }
+                    steps {
+                        unstash "standalone_installer"
+                        input 'Update standalone to //storage.library.illinois.edu/HathiTrust/Tools/beta/?'
+                        cifsPublisher(
+                                    publishers: [[
+                                        configName: 'hathitrust tools',
+                                        transfers: [[
+                                            cleanRemote: false,
+                                            excludes: '',
+                                            flatten: false,
+                                            makeEmptyDirs: false,
+                                            noDefaultExcludes: false,
+                                            patternSeparator: '[, ]+',
+                                            remoteDirectory: 'beta',
+                                            remoteDirectorySDF: false,
+                                            removePrefix: '',
+                                            sourceFiles: '*.msi'
+                                            ]],
+                                        usePromotionTimestamp: false,
+                                        useWorkspaceInPromotion: false,
+                                        verbose: false
+                                        ]]
+                                )
+                    }
+                }
+                stage("Deploy to DevPi Production") {
+                    when {
+                        allOf{
+                            equals expected: true, actual: params.DEPLOY_DEVPI_PRODUCTION
+                            equals expected: true, actual: params.DEPLOY_DEVPI
+                            branch "master"
+                        }
+                    }
+                    steps {
+                        script {
+                            // def name = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --name").trim()
+                            // def version = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --version").trim()
+                            input "Release ${PKG_NAME} ${PKG_VERSION} to DevPi Production?"
+                            withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
+                                bat "devpi login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
+                                bat "devpi use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
+                                bat "devpi push ${PKG_NAME}==${PKG_VERSION} production/release"
+                            }
+                        }
+                    }
+                }
+                stage("Deploy Standalone Build to SCCM") {
+                    when {
+                        allOf{
+                            equals expected: true, actual: params.DEPLOY_SCCM
+                            equals expected: true, actual: params.PACKAGE_WINDOWS_STANDALONE
+                            branch "master"
+                        }
+                        // expression { params.RELEASE == "Release_to_devpi_and_sccm"}
+                    }
 
-            steps {
-                updateOnlineDocs url_subdomain: params.URL_SUBFOLDER, stash_name: "HTML Documentation"
+                    steps {
+                        unstash "msi"
+                        unstash "Deployment"
+                        script{
+                            // def name = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --name").trim()
+                            def msi_files = findFiles glob: '*.msi'
+
+                            def deployment_request = requestDeploy yaml: "deployment.yml", file_name: msi_files[0]
+                            cifsPublisher(
+                                publishers: [[
+                                    configName: 'SCCM Staging',
+                                    transfers: [[
+                                        cleanRemote: false,
+                                        excludes: '',
+                                        flatten: false,
+                                        makeEmptyDirs: false,
+                                        noDefaultExcludes: false,
+                                        patternSeparator: '[, ]+',
+                                        remoteDirectory: '',
+                                        remoteDirectorySDF: false,
+                                        removePrefix: '',
+                                        sourceFiles: '*.msi'
+                                        ]],
+                                    usePromotionTimestamp: false,
+                                    useWorkspaceInPromotion: false,
+                                    verbose: false
+                                    ]]
+                                )
+
+                            // deployStash("msi", "${env.SCCM_STAGING_FOLDER}/${name}/")
+
+                            input("Deploy to production?")
+                            writeFile file: "deployment_request.txt", text: deployment_request
+                            echo deployment_request
+                            cifsPublisher(
+                                publishers: [[
+                                    configName: 'SCCM Upload',
+                                    transfers: [[
+                                        cleanRemote: false,
+                                        excludes: '',
+                                        flatten: false,
+                                        makeEmptyDirs: false,
+                                        noDefaultExcludes: false,
+                                        patternSeparator: '[, ]+',
+                                        remoteDirectory: '',
+                                        remoteDirectorySDF: false,
+                                        removePrefix: '',
+                                        sourceFiles: '*.msi'
+                                        ]],
+                                    usePromotionTimestamp: false,
+                                    useWorkspaceInPromotion: false,
+                                    verbose: false
+                                    ]]
+                            )
+                            // deployStash("msi", "${env.SCCM_UPLOAD_FOLDER}")
+                        }
+                    }
+                    post {
+                        success {
+                            archiveArtifacts artifacts: "deployment_request.txt"
+                        }
+                    }
+                }
             }
         }
     }
+//        stage("Release to DevPi production") {
+//            when {
+//                expression { params.RELEASE != "None" && env.BRANCH_NAME == "master" }
+//            }
+//            steps {
+//                script {
+//                    def name = "HathiValidate"
+//                    // def name = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --name").trim()
+//                    def version = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --version").trim()
+//                    withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
+//                        bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
+//                        bat "venv\\Scripts\\devpi.exe use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
+//                        bat "venv\\Scripts\\devpi.exe push ${name}==${version} production/release"
+//                    }
+//
+//                }
+//                node("Linux"){
+//                    updateOnlineDocs url_subdomain: params.URL_SUBFOLDER, stash_name: "HTML Documentation"
+//                }
+//            }
+//        }
+//
+//        stage("Deploy to SCCM") {
+//            when {
+//                expression { params.RELEASE == "Release_to_devpi_and_sccm"}
+//            }
+//
+//            steps {
+//                node("Linux"){
+//                    unstash "msi"
+//                    deployStash("msi", "${env.SCCM_STAGING_FOLDER}/${params.PROJECT_NAME}/")
+//                    input("Deploy to production?")
+//                    deployStash("msi", "${env.SCCM_UPLOAD_FOLDER}")
+//                }
+//
+//            }
+//            post {
+//                success {
+//                    script{
+//                        def  deployment_request = requestDeploy this, "deployment.yml"
+//                        echo deployment_request
+//                        writeFile file: "deployment_request.txt", text: deployment_request
+//                        archiveArtifacts artifacts: "deployment_request.txt"
+//                    }
+//                }
+//            }
+//        }
+//        stage("Update online documentation") {
+//            agent any
+//            when {
+//                expression { params.UPDATE_DOCS == true }
+//            }
+//
+//            steps {
+//                updateOnlineDocs url_subdomain: params.URL_SUBFOLDER, stash_name: "HTML Documentation"
+//            }
+//        }
+//    }
     post {
         cleanup{
 
