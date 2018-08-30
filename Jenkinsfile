@@ -20,6 +20,9 @@ pipeline {
         timeout(60)  // Timeout after 60 minutes. This shouldn't take this long but it hangs for some reason
         checkoutToSubdirectory("source")
     }
+    triggers {
+        cron('@daily')
+    }
 
     // environment {
         //mypy_args = "--junit-xml=mypy.xml"
