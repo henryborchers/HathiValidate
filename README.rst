@@ -7,5 +7,5 @@ Documentation can be found `here <http://www.library.illinois.edu/dccdocs/hathi_
 
 Master Branch:
 
-.. image:: https://jenkins.library.illinois.edu/buildStatus/icon?job=HathiValidate/master
-    :target: https://jenkins.library.illinois.edu/job/HathiValidate/job/master/
+.. image:: https://jenkins.library.illinois.edu/buildStatus/icon?job=OpenSourceProjects/HathiValidate/master
+    :target: https://jenkins.library.illinois.edu/view/Henry/job/OpenSourceProjects/job/HathiValidate/job/master
