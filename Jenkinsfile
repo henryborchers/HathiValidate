@@ -118,6 +118,7 @@ pipeline {
                 }
                 stage("Creating virtualenv for building"){
                     steps{
+                        echo "Create a virtualenv on ${NODE_NAME}"
                         bat "${tool 'CPython-3.6'} -m venv venv"
                         script {
                             try {
@@ -235,8 +236,8 @@ pipeline {
                     }
                     post{
                         always {
-                            dir("logs"){
                                 archiveArtifacts artifacts: "logs/build_sphinx.log", allowEmptyArchive: true
+//                            dir("logs"){
 //                                script{
 //                                    def log_files = findFiles glob: '**/*.log'
 //                                    log_files.each { log_file ->
@@ -245,7 +246,7 @@ pipeline {
 //                                        bat "del ${log_file}"
 //                                    }
 //                                }
-                            }
+//                            }
                         }
                         success{
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
