@@ -214,8 +214,6 @@ pipeline {
             post {
                 success{
                     bat "tree /A /f >logs/workspace_files_${NODE_NAME}.log"
-//                    tee("logs/workspace_files_${NODE_NAME}.log") {
-//                        bat "dir /s /B"
 //                    }
                 }
             }
@@ -224,12 +222,9 @@ pipeline {
             stages{
                 stage("Python Package"){
                     steps {
-//                        tee("logs/build.log") {
                         dir("source"){
                             bat "${WORKSPACE}\\venv\\Scripts\\python.exe setup.py build -b ${WORKSPACE}\\build"
                         }
-
-//                        }
                     }
                 }
                 stage("Docs"){
