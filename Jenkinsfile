@@ -13,7 +13,7 @@ def VENV_PIP = ""
 
 
 
-def test_devpi(DevpiPath, DevpiIndex, certsDir, packageName, PackageRegex){
+def test_devpi(DevpiPath, DevpiIndex, packageName, PackageRegex, certsDir="certs\\"){
 
     script{
         bat "${DevpiPath} use ${DevpiIndex} --clientdir ${certsDir}"
