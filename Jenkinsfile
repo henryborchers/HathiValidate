@@ -400,19 +400,7 @@ pipeline {
                 stage("Source Distribution: .tar.gz") {
                     steps {
                         echo "Testing Source tar.gz package in devpi"
-                        test_devpi("venv\\Scripts\\devpi.exe", "https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging", "${PKG_NAME}==${PKG_VERSION}", "zip")
-//                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-//                            bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-//
-//                        }
-//                        bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
-//
-//                        script {
-//                            def devpi_test_return_code = bat returnStatus: true, script: "venv\\Scripts\\devpi.exe test --index https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging ${PKG_NAME} -s tar.gz  --verbose"
-//                            if(devpi_test_return_code != 0){
-//                                error "Devpi exit code for tar.gz was ${devpi_test_return_code}"
-//                            }
-//                        }
+                        test_devpi("venv\\Scripts\\devpi.exe", "https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging", "${PKG_NAME}==${PKG_VERSION}", "tar.gz")
                         echo "Finished testing Source Distribution: .tar.gz"
                     }
                     post {
@@ -426,16 +414,6 @@ pipeline {
                     steps {
                         echo "Testing Source zip package in devpi"
                         test_devpi("venv\\Scripts\\devpi.exe", "https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging", "${PKG_NAME}==${PKG_VERSION}", "zip")
-//                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-//                            bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-//                        }
-//                        bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
-//                        script {
-//                            def devpi_test_return_code = bat returnStatus: true, script: "venv\\Scripts\\devpi.exe test --index https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging ${PKG_NAME} -s zip --verbose"
-//                            if(devpi_test_return_code != 0){
-//                                error "Devpi exit code for zip was ${devpi_test_return_code}"
-//                            }
-//                        }
                         echo "Finished testing Source Distribution: .zip"
                     }
                     post {
