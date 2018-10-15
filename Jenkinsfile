@@ -34,6 +34,7 @@ pipeline {
         disableConcurrentBuilds()  //each branch has 1 job running at a time
         timeout(60)  // Timeout after 60 minutes. This shouldn't take this long but it hangs for some reason
         checkoutToSubdirectory("source")
+        buildDiscarder logRotator(artifactDaysToKeepStr: '10', artifactNumToKeepStr: '10')
     }
     triggers {
         cron('@daily')
@@ -212,9 +213,10 @@ pipeline {
             }
             post {
                 success{
-                    tee("logs/workspace_files_${NODE_NAME}.log") {
-                        bat "dir /s /B"
-                    }
+                    bat "tree /A /f >logs/workspace_files_${NODE_NAME}.log"
+//                    tee("logs/workspace_files_${NODE_NAME}.log") {
+//                        bat "dir /s /B"
+//                    }
                 }
             }
         }
@@ -222,22 +224,22 @@ pipeline {
             stages{
                 stage("Python Package"){
                     steps {
-                        tee("logs/build.log") {
-                            dir("source"){
-                                bat "${WORKSPACE}\\venv\\Scripts\\python.exe setup.py build -b ${WORKSPACE}\\build"
-                            }
-
+//                        tee("logs/build.log") {
+                        dir("source"){
+                            bat "${WORKSPACE}\\venv\\Scripts\\python.exe setup.py build -b ${WORKSPACE}\\build"
                         }
+
+//                        }
                     }
                 }
                 stage("Docs"){
                     steps{
                         echo "Building docs on ${env.NODE_NAME}"
-                        tee("logs/build_sphinx.log") {
+//                        tee("logs/build_sphinx.log") {
                             dir("build/lib"){
                                 bat "${WORKSPACE}\\venv\\Scripts\\sphinx-build.exe -b html ${WORKSPACE}\\source\\docs\\source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\doctrees"
                             }
-                        }
+//                        }
                     }
                     post{
                         always {
