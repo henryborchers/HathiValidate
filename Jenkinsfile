@@ -123,16 +123,17 @@ pipeline {
                     }
                     post{
                         always{
-                            dir("logs"){
-                                script{
-                                    def log_files = findFiles glob: '**/pippackages_venv_*.log'
-                                    log_files.each { log_file ->
-                                        echo "Found ${log_file}"
-                                        archiveArtifacts artifacts: "${log_file}"
-                                        bat "del ${log_file}"
-                                    }
-                                }
-                            }
+                            archiveArtifacts artifacts: "logs/pippackages_venv_${NODE_NAME}.log", allowEmptyArchive: true
+//                            dir("logs"){
+//                                script{
+//                                    def log_files = findFiles glob: '**/pippackages_venv_*.log'
+//                                    log_files.each { log_file ->
+//                                        echo "Found ${log_file}"
+//                                        archiveArtifacts artifacts: "${log_file}"
+//                                        bat "del ${log_file}"
+//                                    }
+//                                }
+//                            }
                         }
                         failure {
                             deleteDir()
