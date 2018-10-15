@@ -114,6 +114,11 @@ pipeline {
                             echo "Cleaned out build directory"
                             bat "dir"
                         }
+                        dir("logs"){
+                            deleteDir()
+                            echo "Cleaned out logs directory"
+                            bat "dir"
+                        }
                     }
                 }
                 stage("Creating virtualenv for building"){
