@@ -17,7 +17,7 @@ def test_devpi(DevpiPath, DevpiIndex, packageName, PackageRegex, certsDir="certs
 
     script{
         bat "${DevpiPath} use ${DevpiIndex} --clientdir ${certsDir}"
-        withCredentials([usernamePassword(credentialsId: "${credentialsId}", usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
+        withCredentials([usernamePassword(credentialsId: "DS_devpi", usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
            bat "${DevpiPath} login DS_devpi --clientdir ${certsDir} --password ${DEVPI_PASSWORD}"
         }
     }
