@@ -139,7 +139,10 @@ pipeline {
                     post{
                         always{
                             archiveArtifacts artifacts: "logs/pippackages_venv_*.log", allowEmptyArchive: true
-                            bat "del logs/pippackages_venv_*.log"
+
+                            dir("logs"){
+                                bat "del pippackages_venv*.log"
+                            }
                         }
                         failure {
                             deleteDir()
