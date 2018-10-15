@@ -138,6 +138,7 @@ pipeline {
                     }
                     post{
                         always{
+                            bat "dir logs\\*log"
                             archiveArtifacts artifacts: "logs/pippackages_venv_*.log", allowEmptyArchive: true
 //                            dir("logs"){
 //                                script{
