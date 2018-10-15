@@ -138,7 +138,7 @@ pipeline {
                     }
                     post{
                         always{
-                            archiveArtifacts artifacts: "logs/pippackages_venv_${NODE_NAME}.log", allowEmptyArchive: true
+                            archiveArtifacts artifacts: "logs/pippackages_venv_*.log", allowEmptyArchive: true
 //                            dir("logs"){
 //                                script{
 //                                    def log_files = findFiles glob: '**/pippackages_venv_*.log'
@@ -242,14 +242,15 @@ pipeline {
                     post{
                         always {
                             dir("logs"){
-                                script{
-                                    def log_files = findFiles glob: '**/*.log'
-                                    log_files.each { log_file ->
-                                        echo "Found ${log_file}"
-                                        archiveArtifacts artifacts: "${log_file}"
-                                        bat "del ${log_file}"
-                                    }
-                                }
+                                archiveArtifacts artifacts: "logs/build_sphinx.log", allowEmptyArchive: true
+//                                script{
+//                                    def log_files = findFiles glob: '**/*.log'
+//                                    log_files.each { log_file ->
+//                                        echo "Found ${log_file}"
+//                                        archiveArtifacts artifacts: "${log_file}"
+//                                        bat "del ${log_file}"
+//                                    }
+//                                }
                             }
                         }
                         success{
