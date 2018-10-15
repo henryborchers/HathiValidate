@@ -138,20 +138,8 @@ pipeline {
                     }
                     post{
                         always{
-                            bat "dir logs\\*.log"
-                            dir("logs"){
-                                powershell "Get-ChildItem | Get-Acl"
-                            }
                             archiveArtifacts artifacts: "logs/pippackages_venv_*.log", allowEmptyArchive: true
-//                                script{
-//                                    def log_files = findFiles glob: '**/pippackages_venv_*.log'
-//                                    log_files.each { log_file ->
-//                                        echo "Found ${log_file}"
-//                                        archiveArtifacts artifacts: "${log_file}"
-//                                        bat "del ${log_file}"
-//                                    }
-//                                }
-//                            }
+                            bat "del logs/pippackages_venv_*.log"
                         }
                         failure {
                             deleteDir()
