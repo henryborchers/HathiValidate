@@ -252,9 +252,7 @@ pipeline {
                         }
                         success{
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
-                            dir("${WORKSPACE}/dist"){
-                                zip archive: true, dir: "${WORKSPACE}/build/docs/html", glob: '', zipFile: "${DOC_ZIP_FILENAME}"
-                            }
+                            zip archive: true, dir: "build/docs/html", glob: '', zipFile: "dist/${DOC_ZIP_FILENAME}"
                         }
                     }
                 }
@@ -286,12 +284,12 @@ pipeline {
                     }
                     steps{
                         dir("source") {
-                            bat "${WORKSPACE}\\venv\\Scripts\\mypy.exe -p hathi_validate --junit-xml=${WORKSPACE}/junit-${env.NODE_NAME}-mypy.xml --html-report ${WORKSPACE}/reports/mypy_html"
+                            bat "${WORKSPACE}\\venv\\Scripts\\mypy.exe -p hathi_validate --junit-xml=${WORKSPACE}/reports/junit-${env.NODE_NAME}-mypy.xml --html-report ${WORKSPACE}/reports/mypy_html"
                         }
                     }
                     post{
                         always {
-                            junit "junit-${env.NODE_NAME}-mypy.xml"
+                            junit "reports/junit-${env.NODE_NAME}-mypy.xml"
                             publishHTML([allowMissing: true, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/mypy_html', reportFiles: 'index.html', reportName: 'MyPy', reportTitles: ''])
                         }
                     }
@@ -323,10 +321,8 @@ pipeline {
                     }
                     post{
                         success{
-                            dir("dist"){
-                                archiveArtifacts artifacts: "*.whl", fingerprint: true
-                                archiveArtifacts artifacts: "*.tar.gz", fingerprint: true
-                            }
+                            archiveArtifacts artifacts: "dist/*.whl,dist/*.tar.gz,dist/*.zip", fingerprint: true
+                            stash includes: 'dist/*.*', name: "dist"
                         }
                     }
                 }
@@ -345,8 +341,8 @@ pipeline {
                         success{
                             dir("dist") {
                                 stash includes: "*.msi", name: "msi"
-                                archiveArtifacts artifacts: "*.msi", fingerprint: true
                             }
+                            archiveArtifacts artifacts: "dist/*.msi", fingerprint: true
                         }
                         cleanup{
                             dir("build/msi") {
@@ -658,6 +654,15 @@ pipeline {
                     def devpi_remove_return_code = bat returnStatus: true, script:"venv\\Scripts\\devpi.exe remove -y ${PKG_NAME}==${PKG_VERSION}"
                     echo "Devpi remove exited with code ${devpi_remove_return_code}."
                 }
+            }
+            dir("logs"){
+                deleteDir()
+            }
+            dir("reports"){
+                deleteDir()
+            }
+            dir("build"){
+                deleteDir()
             }
         }
     }
