@@ -34,6 +34,7 @@ pipeline {
         disableConcurrentBuilds()  //each branch has 1 job running at a time
         timeout(60)  // Timeout after 60 minutes. This shouldn't take this long but it hangs for some reason
         checkoutToSubdirectory("source")
+        buildDiscarder logRotator(artifactDaysToKeepStr: '10', artifactNumToKeepStr: '10')
     }
     triggers {
         cron('@daily')
@@ -212,9 +213,8 @@ pipeline {
             }
             post {
                 success{
-                    tee("logs/workspace_files_${NODE_NAME}.log") {
-                        bat "dir /s /B"
-                    }
+                    bat "tree /A /f >logs/workspace_files_${NODE_NAME}.log"
+//                    }
                 }
             }
         }
@@ -222,22 +222,19 @@ pipeline {
             stages{
                 stage("Python Package"){
                     steps {
-                        tee("logs/build.log") {
-                            dir("source"){
-                                bat "${WORKSPACE}\\venv\\Scripts\\python.exe setup.py build -b ${WORKSPACE}\\build"
-                            }
-
+                        dir("source"){
+                            bat "${WORKSPACE}\\venv\\Scripts\\python.exe setup.py build -b ${WORKSPACE}\\build"
                         }
                     }
                 }
                 stage("Docs"){
                     steps{
                         echo "Building docs on ${env.NODE_NAME}"
-                        tee("logs/build_sphinx.log") {
+//                        tee("logs/build_sphinx.log") {
                             dir("build/lib"){
                                 bat "${WORKSPACE}\\venv\\Scripts\\sphinx-build.exe -b html ${WORKSPACE}\\source\\docs\\source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\doctrees"
                             }
-                        }
+//                        }
                     }
                     post{
                         always {
@@ -255,9 +252,7 @@ pipeline {
                         }
                         success{
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
-                            dir("${WORKSPACE}/dist"){
-                                zip archive: true, dir: "${WORKSPACE}/build/docs/html", glob: '', zipFile: "${DOC_ZIP_FILENAME}"
-                            }
+                            zip archive: true, dir: "build/docs/html", glob: '', zipFile: "dist/${DOC_ZIP_FILENAME}"
                         }
                     }
                 }
@@ -289,12 +284,12 @@ pipeline {
                     }
                     steps{
                         dir("source") {
-                            bat "${WORKSPACE}\\venv\\Scripts\\mypy.exe -p hathi_validate --junit-xml=${WORKSPACE}/junit-${env.NODE_NAME}-mypy.xml --html-report ${WORKSPACE}/reports/mypy_html"
+                            bat "${WORKSPACE}\\venv\\Scripts\\mypy.exe -p hathi_validate --junit-xml=${WORKSPACE}/reports/junit-${env.NODE_NAME}-mypy.xml --html-report ${WORKSPACE}/reports/mypy_html"
                         }
                     }
                     post{
                         always {
-                            junit "junit-${env.NODE_NAME}-mypy.xml"
+                            junit "reports/junit-${env.NODE_NAME}-mypy.xml"
                             publishHTML([allowMissing: true, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/mypy_html', reportFiles: 'index.html', reportName: 'MyPy', reportTitles: ''])
                         }
                     }
@@ -326,10 +321,8 @@ pipeline {
                     }
                     post{
                         success{
-                            dir("dist"){
-                                archiveArtifacts artifacts: "*.whl", fingerprint: true
-                                archiveArtifacts artifacts: "*.tar.gz", fingerprint: true
-                            }
+                            archiveArtifacts artifacts: "dist/*.whl,dist/*.tar.gz,dist/*.zip", fingerprint: true
+                            stash includes: 'dist/*.*', name: "dist"
                         }
                     }
                 }
@@ -348,8 +341,8 @@ pipeline {
                         success{
                             dir("dist") {
                                 stash includes: "*.msi", name: "msi"
-                                archiveArtifacts artifacts: "*.msi", fingerprint: true
                             }
+                            archiveArtifacts artifacts: "dist/*.msi", fingerprint: true
                         }
                         cleanup{
                             dir("build/msi") {
@@ -403,18 +396,7 @@ pipeline {
                 stage("Source Distribution: .tar.gz") {
                     steps {
                         echo "Testing Source tar.gz package in devpi"
-                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-                            bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-
-                        }
-                        bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
-
-                        script {
-                            def devpi_test_return_code = bat returnStatus: true, script: "venv\\Scripts\\devpi.exe test --index https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging ${PKG_NAME} -s tar.gz  --verbose"
-                            if(devpi_test_return_code != 0){
-                                error "Devpi exit code for tar.gz was ${devpi_test_return_code}"
-                            }
-                        }
+                        test_devpi("venv\\Scripts\\devpi.exe", "https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging", "${PKG_NAME}==${PKG_VERSION}", "tar.gz")
                         echo "Finished testing Source Distribution: .tar.gz"
                     }
                     post {
@@ -427,16 +409,7 @@ pipeline {
                 stage("Source Distribution: .zip") {
                     steps {
                         echo "Testing Source zip package in devpi"
-                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-                            bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-                        }
-                        bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
-                        script {
-                            def devpi_test_return_code = bat returnStatus: true, script: "venv\\Scripts\\devpi.exe test --index https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging ${PKG_NAME} -s zip --verbose"
-                            if(devpi_test_return_code != 0){
-                                error "Devpi exit code for zip was ${devpi_test_return_code}"
-                            }
-                        }
+                        test_devpi("venv\\Scripts\\devpi.exe", "https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging", "${PKG_NAME}==${PKG_VERSION}", "zip")
                         echo "Finished testing Source Distribution: .zip"
                     }
                     post {
@@ -681,6 +654,15 @@ pipeline {
                     def devpi_remove_return_code = bat returnStatus: true, script:"venv\\Scripts\\devpi.exe remove -y ${PKG_NAME}==${PKG_VERSION}"
                     echo "Devpi remove exited with code ${devpi_remove_return_code}."
                 }
+            }
+            dir("logs"){
+                deleteDir()
+            }
+            dir("reports"){
+                deleteDir()
+            }
+            dir("build"){
+                deleteDir()
             }
         }
     }
