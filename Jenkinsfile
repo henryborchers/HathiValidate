@@ -394,6 +394,9 @@ pipeline {
 //            steps {
             parallel {
                 stage("Source Distribution: .tar.gz") {
+                    options {
+                        lock("devpi_testing")
+                    }
                     steps {
                         echo "Testing Source tar.gz package in devpi"
                         test_devpi("venv\\Scripts\\devpi.exe", "https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging", "${PKG_NAME}==${PKG_VERSION}", "tar.gz")
@@ -407,6 +410,9 @@ pipeline {
 
                 }
                 stage("Source Distribution: .zip") {
+                    options {
+                        lock("devpi_testing")
+                    }
                     steps {
                         echo "Testing Source zip package in devpi"
                         test_devpi("venv\\Scripts\\devpi.exe", "https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging", "${PKG_NAME}==${PKG_VERSION}", "zip")
