@@ -306,7 +306,7 @@ pipeline {
             stages{
                 stage("Upload to Devpi staging") {
                     steps {
-                        bat "venv\\Scripts\\pip.exe install devpi-client
+                        bat "venv\\Scripts\\pip.exe install devpi-client"
                         bat "venv\\Scripts\\devpi.exe use http://devpy.library.illinois.edu"
                         withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
                             bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
@@ -333,7 +333,6 @@ pipeline {
                             }
                         }
                     }
-        //            steps {
                     parallel {
                         stage("Source Distribution: .tar.gz") {
                             options {
