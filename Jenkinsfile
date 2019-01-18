@@ -16,8 +16,6 @@ def remove_from_devpi(devpiExecutable, pkgName, pkgVersion, devpiIndex, devpiUse
     }
 }
 
-def junit_filename = "junit.xml"
-
 def test_devpi(DevpiPath, DevpiIndex, packageName, PackageRegex, certsDir="certs\\"){
 
     script{
@@ -145,26 +143,6 @@ pipeline {
                         failure {
                             deleteDir()
                         }
-                    }
-                }
-                stage("Setting variables used by the rest of the build"){
-                    steps{
-                        script{
-                            junit_filename = "junit-${env.NODE_NAME}-${env.GIT_COMMIT.substring(0,7)}-pytest.xml"
-                        }
-//                        bat "venv\\Scripts\\devpi use https://devpi.library.illinois.edu"
-//                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-//                            bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-//                        }
-//                        bat "dir"
-                    }
-                    post{
-                        always{
-                            bat "dir /s / B"
-                            echo "junit_filename = ${junit_filename}"
-
-                        }
-
                     }
                 }
             }
@@ -315,96 +293,6 @@ pipeline {
                         bat "pip install devpi-client"
                         bat "devpi use https://devpi.library.illinois.edu"
                         bat "devpi use https://devpi.library.illinois.edu && devpi login ${env.DEVPI_USR} --password ${env.DEVPI_PSW} && devpi use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging && devpi upload --from-dir dist"
-//                        bat "venv\\Scripts\\devpi.exe use http://devpy.library.illinois.edu"
-//                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-//                            bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-//                            bat "venv\\Scripts\\devpi.exe use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
-//                            script {
-//                                bat "venv\\Scripts\\devpi.exe upload --from-dir dist"
-//                                try {
-//                                    bat "venv\\Scripts\\devpi.exe upload --only-docs ${WORKSPACE}\\dist\\${env.DOC_ZIP_FILENAME}"
-//                                } catch (exc) {
-//                                    echo "Unable to upload to devpi with docs."
-//                                }
-//                            }
-//                        }
-
-                    }
-                }
-//                stage("Test DevPi packages") {
-//                    when {
-//                        allOf{
-//                            equals expected: true, actual: params.DEPLOY_DEVPI
-//                            anyOf {
-//                                equals expected: "master", actual: env.BRANCH_NAME
-//                                equals expected: "dev", actual: env.BRANCH_NAME
-//                            }
-//                        }
-//                    }
-//                    parallel {
-//                        stage("Source Distribution: .zip") {
-//                            options {
-//                                lock("devpi_testing")
-//                            }
-//                            steps {
-//                                echo "Testing Source .zip package in DevPi"
-//                                devpiTest(
-//                                    devpiExecutable: "${powershell(script: '(Get-Command devpi).path', returnStdout: true).trim()}",
-//                                    url: "https://devpi.library.illinois.edu",
-//                                    index: "${env.BRANCH_NAME}_staging",
-//                                    pkgName: "${env.PKG_NAME}",
-//                                    pkgVersion: "${env.PKG_VERSION}",
-//                                    pkgRegex: "zip",
-//                                    detox: false
-//                                )
-//                                echo "Finished testing Source Distribution: .zip"
-//                            }
-//                            post {
-//                                failure {
-//                                    echo "Tests for .tar.gz source on DevPi failed."
-//                                }
-//                            }
-//
-//                        }
-////                        stage("Source Distribution: .zip") {
-////                            options {
-////                                lock("devpi_testing")
-////                            }
-////                            steps {
-////                                echo "Testing Source zip package in devpi"
-////                                test_devpi("venv\\Scripts\\devpi.exe", "https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging", "${env.PKG_NAME}==${env.PKG_VERSION}", "zip")
-////                                echo "Finished testing Source Distribution: .zip"
-////                            }
-////                            post {
-////                                failure {
-////                                    echo "Tests for .zip source on DevPi failed."
-////                                }
-////                            }
-////                        }
-//                        stage("Built Distribution: .whl") {
-//                            agent {
-//                                node {
-//                                    label "Windows && Python3"
-//                                }
-//                            }
-//                            options {
-//                                skipDefaultCheckout()
-//                            }
-//                            steps {
-//                                echo "Testing Whl package in devpi"
-//                                bat "${tool 'CPython-3.6'}\\python -m venv venv"
-//                                bat "venv\\Scripts\\pip.exe install tox devpi-client"
-//                                test_devpi("venv\\Scripts\\devpi.exe", "https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging", "${env.PKG_NAME}==${env.PKG_VERSION}", "whl")
-//                                echo "Finished testing Built Distribution: .whl"
-//                            }
-//                            post {
-//                                failure {
-//                                    echo "Tests for whl on DevPi failed."
-//                                }
-//                            }
-//                        }
-//                    }
-//                }
                 stage("Test DevPi packages") {
                     parallel {
                         stage("Source Distribution: .zip") {
