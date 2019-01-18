@@ -16,8 +16,6 @@ def remove_from_devpi(devpiExecutable, pkgName, pkgVersion, devpiIndex, devpiUse
     }
 }
 
-def PKG_NAME = "unknown"
-def PKG_VERSION = "unknown"
 def DOC_ZIP_FILENAME = "doc.zip"
 def junit_filename = "junit.xml"
 def REPORT_DIR = ""
@@ -182,14 +180,10 @@ pipeline {
                         script {
                             // Set up the reports directory variable
                             REPORT_DIR = "${pwd tmp: true}\\reports"
-                          dir("source"){
-                                PKG_NAME = bat(returnStdout: true, script: "@${tool 'CPython-3.6'}\\python  setup.py --name").trim()
-                                PKG_VERSION = bat(returnStdout: true, script: "@${tool 'CPython-3.6'}\\python setup.py --version").trim()
-                          }
                         }
 
                         script{
-                            DOC_ZIP_FILENAME = "${PKG_NAME}-${PKG_VERSION}.doc.zip"
+                            DOC_ZIP_FILENAME = "${env.PKG_NAME}-${env.PKG_VERSION}.doc.zip"
                             junit_filename = "junit-${env.NODE_NAME}-${env.GIT_COMMIT.substring(0,7)}-pytest.xml"
                         }
 
@@ -216,8 +210,8 @@ pipeline {
                     post{
                         always{
                             bat "dir /s / B"
-                            echo """Name                            = ${PKG_NAME}
-        Version                         = ${PKG_VERSION}
+                            echo """Name                            = ${env.PKG_NAME}
+        Version                         = ${env.PKG_VERSION}
         Report Directory                = ${REPORT_DIR}
         documentation zip file          = ${DOC_ZIP_FILENAME}
         Python virtual environment path = ${VENV_ROOT}
@@ -421,7 +415,7 @@ pipeline {
                             }
                             steps {
                                 echo "Testing Source tar.gz package in devpi"
-                                test_devpi("venv\\Scripts\\devpi.exe", "https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging", "${PKG_NAME}==${PKG_VERSION}", "tar.gz")
+                                test_devpi("venv\\Scripts\\devpi.exe", "https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging", "${env.PKG_NAME}==${env.PKG_VERSION}", "tar.gz")
                                 echo "Finished testing Source Distribution: .tar.gz"
                             }
                             post {
@@ -437,7 +431,7 @@ pipeline {
                             }
                             steps {
                                 echo "Testing Source zip package in devpi"
-                                test_devpi("venv\\Scripts\\devpi.exe", "https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging", "${PKG_NAME}==${PKG_VERSION}", "zip")
+                                test_devpi("venv\\Scripts\\devpi.exe", "https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging", "${env.PKG_NAME}==${env.PKG_VERSION}", "zip")
                                 echo "Finished testing Source Distribution: .zip"
                             }
                             post {
@@ -459,13 +453,13 @@ pipeline {
                                 echo "Testing Whl package in devpi"
                                 bat "${tool 'CPython-3.6'}\\python -m venv venv"
                                 bat "venv\\Scripts\\pip.exe install tox devpi-client"
-                                test_devpi("venv\\Scripts\\devpi.exe", "https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging", "${PKG_NAME}==${PKG_VERSION}", "whl")
+                                test_devpi("venv\\Scripts\\devpi.exe", "https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging", "${env.PKG_NAME}==${env.PKG_VERSION}", "whl")
         //                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
         //                            bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
         //                        }
         //                        bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
         //                        script{
-        //                            def devpi_test_return_code = bat returnStatus: true, script: "venv\\Scripts\\devpi.exe test --index https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging ${PKG_NAME} -s whl  --verbose"
+        //                            def devpi_test_return_code = bat returnStatus: true, script: "venv\\Scripts\\devpi.exe test --index https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging ${env.PKG_NAME} -s whl  --verbose"
         //                            if(devpi_test_return_code != 0){
         //                                error "Devpi exit code for whl was ${devpi_test_return_code}"
         //                            }
@@ -487,7 +481,7 @@ pipeline {
                                 withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
                                     bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
                                     bat "venv\\Scripts\\devpi.exe use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
-                                    bat "venv\\Scripts\\devpi.exe push ${PKG_NAME}==${PKG_VERSION} ${DEVPI_USERNAME}/${env.BRANCH_NAME}"
+                                    bat "venv\\Scripts\\devpi.exe push ${env.PKG_NAME}==${env.PKG_VERSION} ${DEVPI_USERNAME}/${env.BRANCH_NAME}"
                                 }
                             }
                         }
@@ -576,11 +570,11 @@ pipeline {
                         script {
                             // def name = bat(returnStdout: true, script: "@${tool 'CPython-3.6'}\\python setup.py --name").trim()
                             // def version = bat(returnStdout: true, script: "@${tool 'CPython-3.6'}\\python setup.py --version").trim()
-                            input "Release ${PKG_NAME} ${PKG_VERSION} to DevPi Production?"
+                            input "Release ${env.PKG_NAME} ${env.PKG_VERSION} to DevPi Production?"
                             withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
                                 bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
                                 bat "venv\\Scripts\\devpi.exe use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
-                                bat "venv\\Scripts\\devpi.exe push ${PKG_NAME}==${PKG_VERSION} production/release"
+                                bat "venv\\Scripts\\devpi.exe push ${env.PKG_NAME}==${env.PKG_VERSION} production/release"
                             }
                         }
                     }
@@ -684,7 +678,7 @@ pipeline {
                         bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
                     }
 
-                    def devpi_remove_return_code = bat returnStatus: true, script:"venv\\Scripts\\devpi.exe remove -y ${PKG_NAME}==${PKG_VERSION}"
+                    def devpi_remove_return_code = bat returnStatus: true, script:"venv\\Scripts\\devpi.exe remove -y ${env.PKG_NAME}==${env.PKG_VERSION}"
                     echo "Devpi remove exited with code ${devpi_remove_return_code}."
                 }
             }
