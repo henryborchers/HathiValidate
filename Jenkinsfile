@@ -17,11 +17,6 @@ def remove_from_devpi(devpiExecutable, pkgName, pkgVersion, devpiIndex, devpiUse
 }
 
 def junit_filename = "junit.xml"
-def VENV_ROOT = ""
-def VENV_PYTHON = ""
-def VENV_PIP = ""
-
-
 
 def test_devpi(DevpiPath, DevpiIndex, packageName, PackageRegex, certsDir="certs\\"){
 
@@ -183,15 +178,6 @@ pipeline {
 
 
 
-                        script{
-                            VENV_ROOT = "${WORKSPACE}\\venv\\"
-
-                            VENV_PYTHON = "${WORKSPACE}\\venv\\Scripts\\python.exe"
-                            bat "${VENV_PYTHON} --version"
-
-                            VENV_PIP = "${WORKSPACE}\\venv\\Scripts\\pip.exe"
-                            bat "${VENV_PIP} --version"
-                        }
 
 
                         bat "venv\\Scripts\\devpi use https://devpi.library.illinois.edu"
@@ -203,11 +189,7 @@ pipeline {
                     post{
                         always{
                             bat "dir /s / B"
-                            echo """Python virtual environment path = ${VENV_ROOT}
-        VirtualEnv Python executable    = ${VENV_PYTHON}
-        VirtualEnv Pip executable       = ${VENV_PIP}
-        junit_filename                  = ${junit_filename}
-        """
+                            echo "junit_filename = ${junit_filename}"
 
                         }
 
