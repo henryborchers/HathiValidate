@@ -16,7 +16,6 @@ def remove_from_devpi(devpiExecutable, pkgName, pkgVersion, devpiIndex, devpiUse
     }
 }
 
-def DOC_ZIP_FILENAME = "doc.zip"
 def junit_filename = "junit.xml"
 def REPORT_DIR = ""
 def VENV_ROOT = ""
@@ -183,7 +182,6 @@ pipeline {
                         }
 
                         script{
-                            DOC_ZIP_FILENAME = "${env.PKG_NAME}-${env.PKG_VERSION}.doc.zip"
                             junit_filename = "junit-${env.NODE_NAME}-${env.GIT_COMMIT.substring(0,7)}-pytest.xml"
                         }
 
@@ -210,10 +208,7 @@ pipeline {
                     post{
                         always{
                             bat "dir /s / B"
-                            echo """Name                            = ${env.PKG_NAME}
-        Version                         = ${env.PKG_VERSION}
-        Report Directory                = ${REPORT_DIR}
-        documentation zip file          = ${DOC_ZIP_FILENAME}
+                            echo """Report Directory                = ${REPORT_DIR}
         Python virtual environment path = ${VENV_ROOT}
         VirtualEnv Python executable    = ${VENV_PYTHON}
         VirtualEnv Pip executable       = ${VENV_PIP}
@@ -266,7 +261,7 @@ pipeline {
                         }
                         success{
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
-                            zip archive: true, dir: "build/docs/html", glob: '', zipFile: "dist/${DOC_ZIP_FILENAME}"
+                            zip archive: true, dir: "build/docs/html", glob: '', zipFile: "dist/${env.DOC_ZIP_FILENAME}"
                         }
                     }
                 }
@@ -388,7 +383,7 @@ pipeline {
                                 bat "venv\\Scripts\\devpi.exe upload --from-dir dist"
                                 try {
         //                            bat "venv\\Scripts\\devpi.exe upload --only-docs"
-                                    bat "venv\\Scripts\\devpi.exe upload --only-docs ${WORKSPACE}\\dist\\${DOC_ZIP_FILENAME}"
+                                    bat "venv\\Scripts\\devpi.exe upload --only-docs ${WORKSPACE}\\dist\\${env.DOC_ZIP_FILENAME}"
                                 } catch (exc) {
                                     echo "Unable to upload to devpi with docs."
                                 }
