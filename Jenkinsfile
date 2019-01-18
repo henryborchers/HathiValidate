@@ -303,23 +303,31 @@ pipeline {
                     }
                 }
             }
+            options{
+                timestamps()
+            }
+            environment{
+                PATH = "${WORKSPACE}\\venv\\Scripts;${tool 'CPython-3.6'};${PATH}"
+            }
             stages{
                 stage("Upload to DevPi staging") {
                     steps {
-                        bat "venv\\Scripts\\pip.exe install devpi-client"
-                        bat "venv\\Scripts\\devpi.exe use http://devpy.library.illinois.edu"
-                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-                            bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-                            bat "venv\\Scripts\\devpi.exe use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
-                            script {
-                                bat "venv\\Scripts\\devpi.exe upload --from-dir dist"
-                                try {
-                                    bat "venv\\Scripts\\devpi.exe upload --only-docs ${WORKSPACE}\\dist\\${env.DOC_ZIP_FILENAME}"
-                                } catch (exc) {
-                                    echo "Unable to upload to devpi with docs."
-                                }
-                            }
-                        }
+                        bat "pip install devpi-client"
+                        bat "devpi use https://devpi.library.illinois.edu"
+                        bat "devpi use https://devpi.library.illinois.edu && devpi login ${env.DEVPI_USR} --password ${env.DEVPI_PSW} && devpi use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging && devpi upload --from-dir dist"
+//                        bat "venv\\Scripts\\devpi.exe use http://devpy.library.illinois.edu"
+//                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
+//                            bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
+//                            bat "venv\\Scripts\\devpi.exe use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
+//                            script {
+//                                bat "venv\\Scripts\\devpi.exe upload --from-dir dist"
+//                                try {
+//                                    bat "venv\\Scripts\\devpi.exe upload --only-docs ${WORKSPACE}\\dist\\${env.DOC_ZIP_FILENAME}"
+//                                } catch (exc) {
+//                                    echo "Unable to upload to devpi with docs."
+//                                }
+//                            }
+//                        }
 
                     }
                 }
