@@ -71,17 +71,6 @@ pipeline {
         string(name: 'URL_SUBFOLDER', defaultValue: "hathi_validate", description: 'The directory that the docs should be saved under')
     }
     stages {
-//        stage("Cloning Source") {
-//
-//            steps {
-//                deleteDir()
-//                checkout scm
-//                stash includes: '**', name: "Source", useDefaultExcludes: false
-//                stash includes: 'deployment.yml', name: "Deployment"
-//
-//            }
-//
-//        }
         stage("Configure") {
             stages{
                 stage("Purge all existing data in workspace"){
@@ -150,9 +139,7 @@ pipeline {
                         bat "venv\\Scripts\\pip.exe install tox mypy lxml pytest pytest-cov flake8 sphinx wheel --upgrade-strategy only-if-needed"
                         bat "venv\\Scripts\\pip.exe install -r source\\requirements.txt -r source\\requirements-dev.txt -r source\\requirements-freeze.txt --upgrade-strategy only-if-needed"
 
-//                        tee("logs/pippackages_venv_${NODE_NAME}.log") {
                         bat "venv\\Scripts\\pip.exe list > logs\\pippackages_venv_${NODE_NAME}.log"
-//                        }
                     }
                     post{
                         always{
@@ -215,25 +202,13 @@ pipeline {
                 stage("Docs"){
                     steps{
                         echo "Building docs on ${env.NODE_NAME}"
-//                        tee("logs/build_sphinx.log") {
                             dir("build/lib"){
                                 bat "${WORKSPACE}\\venv\\Scripts\\sphinx-build.exe -b html ${WORKSPACE}\\source\\docs\\source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\doctrees"
                             }
-//                        }
                     }
                     post{
                         always {
                                 archiveArtifacts artifacts: "logs/build_sphinx.log", allowEmptyArchive: true
-//                            dir("logs"){
-//                                script{
-//                                    def log_files = findFiles glob: '**/*.log'
-//                                    log_files.each { log_file ->
-//                                        echo "Found ${log_file}"
-//                                        archiveArtifacts artifacts: "${log_file}"
-//                                        bat "del ${log_file}"
-//                                    }
-//                                }
-//                            }
                         }
                         success{
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
@@ -314,11 +289,9 @@ pipeline {
                 stage("Windows CX_Freeze MSI"){
                     steps{
                         dir("source"){
-//                            bat "venv\\Scripts\\pip.exe install -r requirements.txt -r requirements-dev.txt -r requirements-freeze.txt"
                             bat "${WORKSPACE}\\venv\\Scripts\\python cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir ${WORKSPACE}/build/msi --dist-dir ${WORKSPACE}/dist"
                         }
                         bat "build\\msi\\hathivalidate.exe --pytest"
-                        // bat "make freeze"
 
 
                     }
@@ -358,7 +331,6 @@ pipeline {
                             script {
                                 bat "venv\\Scripts\\devpi.exe upload --from-dir dist"
                                 try {
-        //                            bat "venv\\Scripts\\devpi.exe upload --only-docs"
                                     bat "venv\\Scripts\\devpi.exe upload --only-docs ${WORKSPACE}\\dist\\${env.DOC_ZIP_FILENAME}"
                                 } catch (exc) {
                                     echo "Unable to upload to devpi with docs."
@@ -425,16 +397,6 @@ pipeline {
                                 bat "${tool 'CPython-3.6'}\\python -m venv venv"
                                 bat "venv\\Scripts\\pip.exe install tox devpi-client"
                                 test_devpi("venv\\Scripts\\devpi.exe", "https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging", "${env.PKG_NAME}==${env.PKG_VERSION}", "whl")
-        //                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-        //                            bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-        //                        }
-        //                        bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
-        //                        script{
-        //                            def devpi_test_return_code = bat returnStatus: true, script: "venv\\Scripts\\devpi.exe test --index https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging ${env.PKG_NAME} -s whl  --verbose"
-        //                            if(devpi_test_return_code != 0){
-        //                                error "Devpi exit code for whl was ${devpi_test_return_code}"
-        //                            }
-        //                        }
                                 echo "Finished testing Built Distribution: .whl"
                             }
                             post {
@@ -539,8 +501,6 @@ pipeline {
                     }
                     steps {
                         script {
-                            // def name = bat(returnStdout: true, script: "@${tool 'CPython-3.6'}\\python setup.py --name").trim()
-                            // def version = bat(returnStdout: true, script: "@${tool 'CPython-3.6'}\\python setup.py --version").trim()
                             input "Release ${env.PKG_NAME} ${env.PKG_VERSION} to DevPi Production?"
                             withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
                                 bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
@@ -589,8 +549,6 @@ pipeline {
                                     ]]
                                 )
 
-                            // deployStash("msi", "${env.SCCM_STAGING_FOLDER}/${name}/")
-
                             input("Deploy to production?")
                             writeFile file: "deployment_request.txt", text: deployment_request
                             echo deployment_request
@@ -614,7 +572,6 @@ pipeline {
                                     verbose: false
                                     ]]
                             )
-                            // deployStash("msi", "${env.SCCM_UPLOAD_FOLDER}")
                         }
                     }
                     post {
