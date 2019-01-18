@@ -17,7 +17,6 @@ def remove_from_devpi(devpiExecutable, pkgName, pkgVersion, devpiIndex, devpiUse
 }
 
 def junit_filename = "junit.xml"
-def REPORT_DIR = ""
 def VENV_ROOT = ""
 def VENV_PYTHON = ""
 def VENV_PIP = ""
@@ -176,10 +175,6 @@ pipeline {
                 stage("Setting variables used by the rest of the build"){
                     steps{
 
-                        script {
-                            // Set up the reports directory variable
-                            REPORT_DIR = "${pwd tmp: true}\\reports"
-                        }
 
                         script{
                             junit_filename = "junit-${env.NODE_NAME}-${env.GIT_COMMIT.substring(0,7)}-pytest.xml"
@@ -208,8 +203,7 @@ pipeline {
                     post{
                         always{
                             bat "dir /s / B"
-                            echo """Report Directory                = ${REPORT_DIR}
-        Python virtual environment path = ${VENV_ROOT}
+                            echo """Python virtual environment path = ${VENV_ROOT}
         VirtualEnv Python executable    = ${VENV_PYTHON}
         VirtualEnv Pip executable       = ${VENV_PIP}
         junit_filename                  = ${junit_filename}
