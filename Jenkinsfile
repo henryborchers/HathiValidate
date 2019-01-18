@@ -257,7 +257,7 @@ pipeline {
                 stage("Source and Wheel formats"){
                     steps{
                         dir("source"){
-                            bat "${WORKSPACE}\\venv\\scripts\\python.exe setup.py sdist -d ${WORKSPACE}\\dist bdist_wheel -d ${WORKSPACE}\\dist"
+                            bat "${WORKSPACE}\\venv\\scripts\\python.exe setup.py sdist --format zip -d ${WORKSPACE}\\dist bdist_wheel -d ${WORKSPACE}\\dist"
                         }
                         
                     }
@@ -331,47 +331,133 @@ pipeline {
 
                     }
                 }
+//                stage("Test DevPi packages") {
+//                    when {
+//                        allOf{
+//                            equals expected: true, actual: params.DEPLOY_DEVPI
+//                            anyOf {
+//                                equals expected: "master", actual: env.BRANCH_NAME
+//                                equals expected: "dev", actual: env.BRANCH_NAME
+//                            }
+//                        }
+//                    }
+//                    parallel {
+//                        stage("Source Distribution: .zip") {
+//                            options {
+//                                lock("devpi_testing")
+//                            }
+//                            steps {
+//                                echo "Testing Source .zip package in DevPi"
+//                                devpiTest(
+//                                    devpiExecutable: "${powershell(script: '(Get-Command devpi).path', returnStdout: true).trim()}",
+//                                    url: "https://devpi.library.illinois.edu",
+//                                    index: "${env.BRANCH_NAME}_staging",
+//                                    pkgName: "${env.PKG_NAME}",
+//                                    pkgVersion: "${env.PKG_VERSION}",
+//                                    pkgRegex: "zip",
+//                                    detox: false
+//                                )
+//                                echo "Finished testing Source Distribution: .zip"
+//                            }
+//                            post {
+//                                failure {
+//                                    echo "Tests for .tar.gz source on DevPi failed."
+//                                }
+//                            }
+//
+//                        }
+////                        stage("Source Distribution: .zip") {
+////                            options {
+////                                lock("devpi_testing")
+////                            }
+////                            steps {
+////                                echo "Testing Source zip package in devpi"
+////                                test_devpi("venv\\Scripts\\devpi.exe", "https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging", "${env.PKG_NAME}==${env.PKG_VERSION}", "zip")
+////                                echo "Finished testing Source Distribution: .zip"
+////                            }
+////                            post {
+////                                failure {
+////                                    echo "Tests for .zip source on DevPi failed."
+////                                }
+////                            }
+////                        }
+//                        stage("Built Distribution: .whl") {
+//                            agent {
+//                                node {
+//                                    label "Windows && Python3"
+//                                }
+//                            }
+//                            options {
+//                                skipDefaultCheckout()
+//                            }
+//                            steps {
+//                                echo "Testing Whl package in devpi"
+//                                bat "${tool 'CPython-3.6'}\\python -m venv venv"
+//                                bat "venv\\Scripts\\pip.exe install tox devpi-client"
+//                                test_devpi("venv\\Scripts\\devpi.exe", "https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging", "${env.PKG_NAME}==${env.PKG_VERSION}", "whl")
+//                                echo "Finished testing Built Distribution: .whl"
+//                            }
+//                            post {
+//                                failure {
+//                                    echo "Tests for whl on DevPi failed."
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
                 stage("Test DevPi packages") {
-                    when {
-                        allOf{
-                            equals expected: true, actual: params.DEPLOY_DEVPI
-                            anyOf {
-                                equals expected: "master", actual: env.BRANCH_NAME
-                                equals expected: "dev", actual: env.BRANCH_NAME
-                            }
-                        }
-                    }
                     parallel {
-                        stage("Source Distribution: .tar.gz") {
+                        stage("Source Distribution: .zip") {
+                            agent {
+                                node {
+                                    label "Windows && Python3"
+                                }
+                            }
                             options {
-                                lock("devpi_testing")
+                                skipDefaultCheckout(true)
                             }
-                            steps {
-                                echo "Testing Source tar.gz package in devpi"
-                                test_devpi("venv\\Scripts\\devpi.exe", "https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging", "${env.PKG_NAME}==${env.PKG_VERSION}", "tar.gz")
-                                echo "Finished testing Source Distribution: .tar.gz"
+                            environment {
+                                PATH = "${tool 'CPython-3.6'};${tool 'CPython-3.7'};$PATH"
                             }
-                            post {
-                                failure {
-                                    echo "Tests for .tar.gz source on DevPi failed."
+                            stages{
+                                stage("Building DevPi Testing venv for .zip package"){
+                                    steps{
+                                        lock("system_python_${NODE_NAME}"){
+                                            bat "python -m venv venv"
+                                        }
+                                        bat "venv\\Scripts\\python.exe -m pip install pip --upgrade && venv\\Scripts\\pip.exe install setuptools --upgrade && venv\\Scripts\\pip.exe install \"tox<3.7\" detox devpi-client"
+                                    }
+                                }
+                                stage("Testing DevPi zip Package"){
+                                    options{
+                                        timeout(20)
+                                    }
+                                    steps {
+                                        echo "Testing Source tar.gz package in devpi"
+
+                                        devpiTest(
+                                            devpiExecutable: "${powershell(script: '(Get-Command devpi).path', returnStdout: true).trim()}",
+                                            url: "https://devpi.library.illinois.edu",
+                                            index: "${env.BRANCH_NAME}_staging",
+                                            pkgName: "${env.PKG_NAME}",
+                                            pkgVersion: "${env.PKG_VERSION}",
+                                            pkgRegex: "zip",
+                                            detox: false
+                                        )
+                                        echo "Finished testing Source Distribution: .zip"
+                                    }
+
                                 }
                             }
 
-                        }
-                        stage("Source Distribution: .zip") {
-                            options {
-                                lock("devpi_testing")
-                            }
-                            steps {
-                                echo "Testing Source zip package in devpi"
-                                test_devpi("venv\\Scripts\\devpi.exe", "https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging", "${env.PKG_NAME}==${env.PKG_VERSION}", "zip")
-                                echo "Finished testing Source Distribution: .zip"
-                            }
                             post {
-                                failure {
-                                    echo "Tests for .zip source on DevPi failed."
-                                }
+                                cleanup{
+                                        cleanWs deleteDirs: true, patterns: [
+                                            [pattern: 'certs', type: 'INCLUDE']
+                                        ]
+                                    }
                             }
+
                         }
                         stage("Built Distribution: .whl") {
                             agent {
@@ -379,20 +465,49 @@ pipeline {
                                     label "Windows && Python3"
                                 }
                             }
+                            environment {
+                                PATH = "${tool 'CPython-3.6'};${tool 'CPython-3.6'}\\Scripts;${tool 'CPython-3.7'};$PATH"
+                            }
                             options {
-                                skipDefaultCheckout()
+                                skipDefaultCheckout(true)
                             }
-                            steps {
-                                echo "Testing Whl package in devpi"
-                                bat "${tool 'CPython-3.6'}\\python -m venv venv"
-                                bat "venv\\Scripts\\pip.exe install tox devpi-client"
-                                test_devpi("venv\\Scripts\\devpi.exe", "https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging", "${env.PKG_NAME}==${env.PKG_VERSION}", "whl")
-                                echo "Finished testing Built Distribution: .whl"
-                            }
-                            post {
-                                failure {
-                                    echo "Tests for whl on DevPi failed."
+                            stages{
+                                stage("Creating venv to Test Whl"){
+                                    steps {
+                                        lock("system_python_${NODE_NAME}"){
+                                            bat "if not exist venv\\36 mkdir venv\\36"
+                                            bat "\"${tool 'CPython-3.6'}\\python.exe\" -m venv venv\\36"
+                                            bat "if not exist venv\\37 mkdir venv\\37"
+                                            bat "\"${tool 'CPython-3.7'}\\python.exe\" -m venv venv\\37"
+                                        }
+                                        bat "venv\\36\\Scripts\\python.exe -m pip install pip --upgrade && venv\\36\\Scripts\\pip.exe install setuptools --upgrade && venv\\36\\Scripts\\pip.exe install \"tox<3.7\" devpi-client"
+                                    }
+
                                 }
+                                stage("Testing DevPi .whl Package"){
+                                    options{
+                                        timeout(20)
+                                    }
+                                    environment{
+                                       PATH = "${WORKSPACE}\\venv\\36\\Scripts;${tool 'CPython-3.6'};${tool 'CPython-3.6'}\\Scripts;${tool 'CPython-3.7'};$PATH"
+                                    }
+                                    steps {
+                                        echo "Testing Whl package in devpi"
+                                        devpiTest(
+//                                                devpiExecutable: "venv\\36\\Scripts\\devpi.exe",
+                                            devpiExecutable: "${powershell(script: '(Get-Command devpi).path', returnStdout: true).trim()}",
+                                            url: "https://devpi.library.illinois.edu",
+                                            index: "${env.BRANCH_NAME}_staging",
+                                            pkgName: "${env.PKG_NAME}",
+                                            pkgVersion: "${env.PKG_VERSION}",
+                                            pkgRegex: "whl",
+                                            detox: false
+                                            )
+
+                                        echo "Finished testing Built Distribution: .whl"
+                                    }
+                                }
+
                             }
                         }
                     }
