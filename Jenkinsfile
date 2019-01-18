@@ -304,7 +304,7 @@ pipeline {
                 }
             }
             stages{
-                stage("Upload to Devpi staging") {
+                stage("Upload to DevPi staging") {
                     steps {
                         bat "venv\\Scripts\\pip.exe install devpi-client"
                         bat "venv\\Scripts\\devpi.exe use http://devpy.library.illinois.edu"
@@ -323,7 +323,7 @@ pipeline {
 
                     }
                 }
-                stage("Test Devpi packages") {
+                stage("Test DevPi packages") {
                     when {
                         allOf{
                             equals expected: true, actual: params.DEPLOY_DEVPI
