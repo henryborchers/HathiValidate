@@ -52,9 +52,6 @@ pipeline {
         DOC_ZIP_FILENAME = "${env.PKG_NAME}-${env.PKG_VERSION}.doc.zip"
         DEVPI = credentials("DS_devpi")
     }
-        //mypy_args = "--junit-xml=mypy.xml"
-        //pytest_args = "--junitxml=reports/junit-{env:OS:UNKNOWN_OS}-{envname}.xml --junit-prefix={env:OS:UNKNOWN_OS}  --basetemp={envtmpdir}"
-    // }
     parameters {
         booleanParam(name: "FRESH_WORKSPACE", defaultValue: false, description: "Purge workspace before staring and checking out source")
         string(name: "PROJECT_NAME", defaultValue: "Hathi Validate", description: "Name given to the project")
@@ -122,13 +119,12 @@ pipeline {
                 stage("Creating virtualenv for building"){
                     steps{
                         echo "Create a virtualenv on ${NODE_NAME}"
-                        bat "${tool 'CPython-3.6'}\\python -m venv venv"
+                        bat "python -m venv venv"
                         script {
                             try {
                                 bat "call venv\\Scripts\\python.exe -m pip install -U pip>=18.1"
                             }
                             catch (exc) {
-                                bat "${tool 'CPython-3.6'}\\python -m venv venv"
                                 bat "call venv\\Scripts\\python.exe -m pip install -U pip>=18.1 --no-cache-dir"
                             }
                         }
@@ -153,22 +149,14 @@ pipeline {
                 }
                 stage("Setting variables used by the rest of the build"){
                     steps{
-
-
                         script{
                             junit_filename = "junit-${env.NODE_NAME}-${env.GIT_COMMIT.substring(0,7)}-pytest.xml"
                         }
-
-
-
-
-
-
-                        bat "venv\\Scripts\\devpi use https://devpi.library.illinois.edu"
-                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-                            bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-                        }
-                        bat "dir"
+//                        bat "venv\\Scripts\\devpi use https://devpi.library.illinois.edu"
+//                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
+//                            bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
+//                        }
+//                        bat "dir"
                     }
                     post{
                         always{
@@ -318,6 +306,7 @@ pipeline {
             stages{
                 stage("Upload to Devpi staging") {
                     steps {
+                        bat "venv\\Scripts\\pip.exe install devpi-client
                         bat "venv\\Scripts\\devpi.exe use http://devpy.library.illinois.edu"
                         withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
                             bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
