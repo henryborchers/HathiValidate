@@ -16,6 +16,7 @@ def remove_from_devpi(devpiExecutable, pkgName, pkgVersion, devpiIndex, devpiUse
     }
 }
 
+
 def test_devpi(DevpiPath, DevpiIndex, packageName, PackageRegex, certsDir="certs\\"){
 
     script{
@@ -24,7 +25,6 @@ def test_devpi(DevpiPath, DevpiIndex, packageName, PackageRegex, certsDir="certs
            bat "${DevpiPath} login DS_Jenkins --clientdir ${certsDir} --password ${DEVPI_PASSWORD}"
         }
     }
-//    devpi_login("${DevpiPath}", 'DS_devpi', "${DevpiIndex}", "${certsDir}")
     echo "Testing on ${NODE_NAME}"
     bat "${DevpiPath} test --index ${DevpiIndex} --verbose ${packageName} -s ${PackageRegex} --clientdir ${certsDir} --tox-args=\"-vv\""
 }
@@ -293,6 +293,9 @@ pipeline {
                         bat "pip install devpi-client"
                         bat "devpi use https://devpi.library.illinois.edu"
                         bat "devpi use https://devpi.library.illinois.edu && devpi login ${env.DEVPI_USR} --password ${env.DEVPI_PSW} && devpi use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging && devpi upload --from-dir dist"
+
+                    }
+                }
                 stage("Test DevPi packages") {
                     parallel {
                         stage("Source Distribution: .zip") {
