@@ -1,4 +1,5 @@
 import os
+import re
 
 import sys
 from setuptools.config import read_configuration
@@ -77,11 +78,14 @@ build_exe_options = {
 
 }
 
+version_extractor = re.compile(r"\d+[.]\d+[.]\d+")
+version = version_extractor.search(metadata['version']).group(0)
+
 target_name = "hathivalidate.exe" if platform.system() == "Windows" else "hathivalidate"
 setup(
     name="DS Hathi Trust Validate",
     description=metadata['description'],
-    version=metadata['version'],
+    version=version,
     license=metadata['license'],
     author=metadata['author'],
     author_email=metadata['author_email'],
