@@ -1,5 +1,6 @@
 import os
 import pytest
+import shutil
 from hathi_validate import process
 
 dummy_checksum = """693b588c859be9fa1a62f371882e769b *00000001.tif
@@ -205,15 +206,17 @@ def checksum_file(tmpdir):
 
 
 @pytest.fixture()
-def yaml_file_bb(tmpdir):
-    p = tmpdir.mkdir("bbyamltest").join("meta.yml")
+def yaml_file_bb(tmpdir_factory):
+    base_temp = tmpdir_factory.mktemp("bbyamltest", numbered=False)
+    p = base_temp.join("meta.yml")
     with open(str(p), "w") as f:
         f.write("capture_date: 2016-06-21T08:00:00Z\n")
         f.write("capture_agent: TRIGONIX\n")
         f.write("scanner_user: TRIGONIX\n")
         f.write("scanner_make: TRIGONIX\n")
         f.write("scanner_model: TRIGO-C1\n")
-    return str(p)
+    yield str(p)
+    shutil.rmtree(base_temp)
 
 
 def test_bb_yaml(yaml_file_bb):
@@ -226,19 +229,20 @@ def test_bb_yaml(yaml_file_bb):
 
 
 @pytest.fixture()
-def ds_with_yml(tmpdir):
-    p = tmpdir.mkdir("dsyamltest")
-    yaml = p.join("meta.yml")
+def ds_with_yml(tmpdir_factory):
+    base_temp = tmpdir_factory.mktemp("dsyamltest", numbered=False)
+    yaml = base_temp.join("meta.yml")
     with open(str(yaml), "w") as f:
         f.write("capture_date: 2017-07-03T14:22:30-05:00\n")
         f.write("capture_agent: IU\n")
         f.write("scanner_user: University of Illinois Digital Content Creation Unit\n")
         f.write("pagedata:\n")
         f.write("    00000001.jp2: { }\n")
-    jp2_file = os.path.join(str(p), "00000001.jp2")
+    jp2_file = os.path.join(str(base_temp), "00000001.jp2")
     with open(jp2_file, "wb") as f:
         pass
-    return str(p)
+    yield str(base_temp)
+    shutil.rmtree(base_temp)
 
 
 def test_ds_yaml(ds_with_yml):
@@ -250,10 +254,12 @@ def test_ds_yaml(ds_with_yml):
 
 
 @pytest.fixture()
-def marc_file(tmpdir):
-    p = tmpdir.mkdir("tmp").join("marc.xml")
+def marc_file(tmpdir_factory):
+    basedir = tmpdir_factory.mktemp("tmp", numbered=False)
+    p = basedir.join("marc.xml")
     p.write(dummy_marc)
-    return p
+    yield p
+    shutil.rmtree(basedir)
 
 
 @pytest.mark.skip(reason="not ready yet")
@@ -306,8 +312,10 @@ class Test_is_same_hash():
 
 
 @pytest.fixture()
-def file_with_only_utf8(tmpdir):
-    p = tmpdir.mkdir("utf8_tests").join("good.xml")
+def file_with_only_utf8(tmpdir_factory):
+
+    base_temp = tmpdir_factory.mktemp("utf8_tests", numbered=False)
+    p = base_temp.join("good.xml")
     UTF_CHAR_LIST = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEF" \
                     "GHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~€‚ƒ„…†‡" \
                     "ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ ¡¢£¤¥¦§¨©ª«¬ ®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈ" \
@@ -323,7 +331,8 @@ def file_with_only_utf8(tmpdir):
     with open(p, "w", encoding="utf8") as wf:
         for char in UTF_CHAR_LIST:
             wf.write("{}\n".format(char))
-    return p
+    yield p
+    shutil.rmtree(base_temp)
 
 
 def test_utf_check_valid(file_with_only_utf8):
@@ -332,8 +341,9 @@ def test_utf_check_valid(file_with_only_utf8):
 
 
 @pytest.fixture()
-def file_with_utf8_and_non_utf8(tmpdir):
-    p = tmpdir.mkdir("utf8_tests").join("non_utf8.xml")
+def file_with_utf8_and_non_utf8(tmpdir_factory):
+    base_temp = tmpdir_factory.mktemp("utf8_tests", numbered=False)
+    p = base_temp.join("non_utf8.xml")
     UTF_CHAR_LIST = "abc"
     with open(p, "wb") as wf:
 
@@ -341,7 +351,8 @@ def file_with_utf8_and_non_utf8(tmpdir):
             wf.write(bytes(char, encoding="utf8"))
             wf.write(b"\n")
         wf.write(b'\x80')
-    return p
+    yield p
+    shutil.rmtree(base_temp)
 
 def test_utf_check_invalid(file_with_utf8_and_non_utf8):
     result = process.find_non_utf8_characters(file_with_utf8_and_non_utf8)
