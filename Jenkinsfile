@@ -635,10 +635,8 @@ pipeline {
                     [pattern: 'logs', type: 'INCLUDE'],
                     [pattern: 'certs', type: 'INCLUDE'],
                     [pattern: '*tmp', type: 'INCLUDE'],
-                    [pattern: "source/**/*.dll", type: 'INCLUDE'],
-                    [pattern: "source/**/*.pyd", type: 'INCLUDE'],
-                    [pattern: "source/**/*.exe", type: 'INCLUDE'],
-                    [pattern: "source/**/*.exe", type: 'INCLUDE']
+                    [pattern: "source", type: 'INCLUDE'],
+                    [pattern: ".pytest_cache", type: 'INCLUDE']
                     ]
                 )
 //            dir("logs"){
