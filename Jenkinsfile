@@ -603,19 +603,19 @@ pipeline {
         cleanup{
 
             script {
-                if(fileExists('source/setup.py')){
-                    dir("source"){
-                        try{
-                            retry(3) {
-                                bat "${WORKSPACE}\\venv\\Scripts\\python.exe setup.py clean --all"
-                            }
-                        } catch (Exception ex) {
-                            echo "Unable to successfully run clean. Purging source directory."
-                            deleteDir()
-                        }
-                    }
-                }
-                bat "dir"
+//                if(fileExists('source/setup.py')){
+//                    dir("source"){
+//                        try{
+//                            retry(3) {
+//                                bat "${WORKSPACE}\\venv\\Scripts\\python.exe setup.py clean --all"
+//                            }
+//                        } catch (Exception ex) {
+//                            echo "Unable to successfully run clean. Purging source directory."
+//                            deleteDir()
+//                        }
+//                    }
+//                }
+//                bat "dir"
                 if (env.BRANCH_NAME == "master" || env.BRANCH_NAME == "dev"){
                     withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
                         bat "venv\\Scripts\\devpi.exe login DS_Jenkins --password ${DEVPI_PASSWORD}"
@@ -626,15 +626,30 @@ pipeline {
                     echo "Devpi remove exited with code ${devpi_remove_return_code}."
                 }
             }
-            dir("logs"){
-                deleteDir()
-            }
-            dir("reports"){
-                deleteDir()
-            }
-            dir("build"){
-                deleteDir()
-            }
+             cleanWs(
+                deleteDirs: true,
+                patterns: [
+                    [pattern: 'dist', type: 'INCLUDE'],
+    //                    [pattern: 'build', type: 'INCLUDE'],
+                    [pattern: 'reports', type: 'INCLUDE'],
+                    [pattern: 'logs', type: 'INCLUDE'],
+                    [pattern: 'certs', type: 'INCLUDE'],
+                    [pattern: '*tmp', type: 'INCLUDE'],
+                    [pattern: "source/**/*.dll", type: 'INCLUDE'],
+                    [pattern: "source/**/*.pyd", type: 'INCLUDE'],
+                    [pattern: "source/**/*.exe", type: 'INCLUDE'],
+                    [pattern: "source/**/*.exe", type: 'INCLUDE']
+                    ]
+                )
+//            dir("logs"){
+//                deleteDir()
+//            }
+//            dir("reports"){
+//                deleteDir()
+//            }
+//            dir("build"){
+//                deleteDir()
+//            }
         }
     }
 }
