@@ -94,7 +94,10 @@ pipeline {
                 stage("Creating virtualenv for building"){
                     steps{
                         echo "Create a virtualenv on ${NODE_NAME}"
-                        bat "python -m venv venv"
+                        bat(
+                            script: "python -m venv venv"
+                            label: "Create virtualenv at ${WORKSPACE}/venv"
+                        )
                         script {
                             try {
                                 bat "call venv\\Scripts\\python.exe -m pip install -U pip>=18.1"
@@ -163,7 +166,7 @@ pipeline {
                 stage("Installing Python Testing Packages"){
                     steps{
                         bat(
-                            script: 'venv\\Scripts\\pip.exe install "tox>=3.8.2" mypy lxml pytest pytest-cov flake8 -r source\\requirements-dev.txt',
+                            script: 'venv\\Scripts\\pip.exe install "tox>=3.8.2" pytest-runner mypy lxml pytest pytest-cov flake8',
                             label: "Install test packages"
                             )
                     }
