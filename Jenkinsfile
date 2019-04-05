@@ -95,7 +95,7 @@ pipeline {
                     steps{
                         echo "Create a virtualenv on ${NODE_NAME}"
                         bat(
-                            script: "python -m venv venv"
+                            script: "python -m venv venv",
                             label: "Create virtualenv at ${WORKSPACE}/venv"
                         )
                         script {
@@ -167,7 +167,7 @@ pipeline {
                     steps{
                         bat(
                             script: 'venv\\Scripts\\pip.exe install "tox>=3.8.2" pytest-runner mypy lxml pytest pytest-cov flake8',
-                            label: "Install test packages"
+                            label : "Install test packages"
                             )
                     }
                 }
