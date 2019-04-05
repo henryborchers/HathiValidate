@@ -127,12 +127,11 @@ pipeline {
                                 bat "call venv\\Scripts\\python.exe -m pip install -U pip>=18.1 --no-cache-dir"
                             }
                         }
-                        bat "if not exist logs mkdir logs"
-                        bat "venv\\Scripts\\pip.exe install devpi-client --upgrade-strategy only-if-needed"
-                        bat "venv\\Scripts\\pip.exe install -r source\\requirements.txt -r source\\requirements-dev.txt -r source\\requirements-freeze.txt --upgrade-strategy only-if-needed"
-                        bat 'venv\\Scripts\\pip.exe install "tox>=3.7,<3.8" mypy lxml pytest pytest-cov flake8 sphinx wheel --upgrade-strategy only-if-needed'
-
-                        bat "venv\\Scripts\\pip.exe list > logs\\pippackages_venv_${NODE_NAME}.log"
+                        bat """if not exist logs mkdir logs
+                        venv\\Scripts\\pip.exe install devpi-client --upgrade-strategy only-if-needed
+                        venv\\Scripts\\pip.exe install -r source\\requirements.txt -r source\\requirements-dev.txt -r source\\requirements-freeze.txt --upgrade-strategy only-if-needed
+                        venv\\Scripts\\pip.exe install "tox>=3.7,<3.8" mypy lxml pytest pytest-cov flake8 sphinx wheel --upgrade-strategy only-if-needed
+                        venv\\Scripts\\pip.exe list > logs\\pippackages_venv_${NODE_NAME}.log"""
                     }
                     post{
                         always{
