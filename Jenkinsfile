@@ -103,8 +103,7 @@ pipeline {
                                 bat "call venv\\Scripts\\python.exe -m pip install -U pip>=18.1 --no-cache-dir"
                             }
                         }
-                        bat """venv\\Scripts\\pip.exe install -r source\\requirements.txt -r source\\requirements-dev.txt
-                               venv\\Scripts\\pip.exe install sphinx wheel"""
+                        bat "venv\\Scripts\\pip.exe install sphinx -r source\\requirements.txt"
                     }
                     post{
                         success{
@@ -144,7 +143,7 @@ pipeline {
                     steps{
                         echo "Building docs on ${env.NODE_NAME}"
                             dir("build/lib"){
-                                bat "${WORKSPACE}\\venv\\Scripts\\sphinx-build.exe -b html ${WORKSPACE}\\source\\docs\\source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\doctrees"
+                                bat "${WORKSPACE}\\venv\\Scripts\\sphinx-build.exe -b html ${WORKSPACE}\\source\\docs\\source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\doctrees -w ${WORKSPACE}/logs/build_sphinx.log"
                             }
                     }
                     post{
@@ -164,7 +163,7 @@ pipeline {
                 stage("Installing Python Testing Packages"){
                     steps{
                         bat(
-                            script: 'venv\\Scripts\\pip.exe install "tox>=3.8.2" mypy lxml pytest pytest-cov flake8',
+                            script: 'venv\\Scripts\\pip.exe install "tox>=3.8.2" mypy lxml pytest pytest-cov flake8 -r source\\requirements-dev.txt',
                             label: "Install test packages"
                             )
                     }
