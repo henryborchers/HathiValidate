@@ -1,7 +1,0 @@
-pytest
-tox
-pytest-runner
-PyYAML
-mypy
-wheel
-sphinx

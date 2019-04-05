@@ -91,34 +91,13 @@ pipeline {
                        }
                     }
                 }
-                stage("Cleanup extra dirs"){
-                    steps{
-                        dir("reports"){
-                            deleteDir()
-                            echo "Cleaned out reports directory"
-                            bat "dir"
-                        }
-                        dir("dist"){
-                            deleteDir()
-                            echo "Cleaned out dist directory"
-                            bat "dir"
-                        }
-                        dir("build"){
-                            deleteDir()
-                            echo "Cleaned out build directory"
-                            bat "dir"
-                        }
-                        dir("logs"){
-                            deleteDir()
-                            echo "Cleaned out logs directory"
-                            bat "dir"
-                        }
-                    }
-                }
                 stage("Creating virtualenv for building"){
                     steps{
                         echo "Create a virtualenv on ${NODE_NAME}"
-                        bat "python -m venv venv"
+                        bat(
+                            script: "python -m venv venv",
+                            label: "Create virtualenv at ${WORKSPACE}/venv"
+                        )
                         script {
                             try {
                                 bat "call venv\\Scripts\\python.exe -m pip install -U pip>=18.1"
@@ -127,22 +106,19 @@ pipeline {
                                 bat "call venv\\Scripts\\python.exe -m pip install -U pip>=18.1 --no-cache-dir"
                             }
                         }
-                        bat "venv\\Scripts\\pip.exe install devpi-client --upgrade-strategy only-if-needed"
-                        bat "venv\\Scripts\\pip.exe install -r source\\requirements.txt -r source\\requirements-dev.txt -r source\\requirements-freeze.txt --upgrade-strategy only-if-needed"
-                        bat 'venv\\Scripts\\pip.exe install "tox>=3.7,<3.8" mypy lxml pytest pytest-cov flake8 sphinx wheel --upgrade-strategy only-if-needed'
-
-                        bat "venv\\Scripts\\pip.exe list > logs\\pippackages_venv_${NODE_NAME}.log"
+                        bat "venv\\Scripts\\pip.exe install sphinx -r source\\requirements.txt"
                     }
                     post{
-                        always{
+                        success{
+                            bat "(if not exist logs mkdir logs) && venv\\Scripts\\pip.exe list > logs\\pippackages_venv_${NODE_NAME}.log"
                             archiveArtifacts artifacts: "logs/pippackages_venv_*.log", allowEmptyArchive: true
-
-                            dir("logs"){
-                                bat "del pippackages_venv*.log"
-                            }
                         }
-                        failure {
-                            deleteDir()
+                        cleanup{
+                            cleanWs(
+                                patterns: [
+                                        [pattern: 'logs/pippackages_venv*.log', type: 'INCLUDE']
+                                    ]
+                                )
                         }
                     }
                 }
@@ -151,6 +127,9 @@ pipeline {
                 success{
                     bat "tree /A /f >logs/workspace_files_${NODE_NAME}.log"
 //                    }
+                }
+                failure {
+                    deleteDir()
                 }
             }
         }
@@ -167,7 +146,7 @@ pipeline {
                     steps{
                         echo "Building docs on ${env.NODE_NAME}"
                             dir("build/lib"){
-                                bat "${WORKSPACE}\\venv\\Scripts\\sphinx-build.exe -b html ${WORKSPACE}\\source\\docs\\source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\doctrees"
+                                bat "${WORKSPACE}\\venv\\Scripts\\sphinx-build.exe -b html ${WORKSPACE}\\source\\docs\\source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\doctrees -w ${WORKSPACE}/logs/build_sphinx.log"
                             }
                     }
                     post{
@@ -183,108 +162,130 @@ pipeline {
             }
         }
         stage("Tests") {
-
-            parallel {
-                stage("PyTest"){
-                    when {
-                        equals expected: true, actual: params.UNIT_TESTS
-                    }
+            stages{
+                stage("Installing Python Testing Packages"){
                     steps{
-                        dir("source"){
-                            bat "${WORKSPACE}\\venv\\Scripts\\python -m pytest --junitxml=${WORKSPACE}/reports/junit-${env.NODE_NAME}-pytest.xml --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/coverage/ --cov=hathi_validate" //  --basetemp={envtmpdir}"
-                        }
-
-                    }
-                    post {
-                        always{
-                            junit "reports/junit-${env.NODE_NAME}-pytest.xml"
-                            publishHTML([allowMissing: true, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/coverage', reportFiles: 'index.html', reportName: 'Coverage', reportTitles: ''])
-                        }
+                        bat(
+                            script: 'venv\\Scripts\\pip.exe install "tox>=3.8.2" pytest-runner mypy lxml pytest pytest-cov flake8',
+                            label : "Install test packages"
+                            )
                     }
                 }
-                stage("Run Tox"){
-                    environment{
-                        PATH = "${WORKSPACE}\\venv\\Scripts;${tool 'CPython-3.6'};${tool 'CPython-3.7'};$PATH"
-                    }
-                    when{
-                        equals expected: true, actual: params.TEST_RUN_TOX
-                    }
-                    steps {
-                        dir("source"){
-                            script{
-                                try{
-                                    bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox -vv"
-                                } catch (exc) {
-                                    bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox --recreate -vv"
+                stage("Run tests"){
+                    parallel {
+                        stage("PyTest"){
+                            when {
+                                equals expected: true, actual: params.UNIT_TESTS
+                            }
+                            steps{
+                                dir("source"){
+                                    bat "${WORKSPACE}\\venv\\Scripts\\python -m pytest --junitxml=${WORKSPACE}/reports/junit-${env.NODE_NAME}-pytest.xml --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/coverage/ --cov=hathi_validate" //  --basetemp={envtmpdir}"
+                                }
+
+                            }
+                            post {
+                                always{
+                                    junit "reports/junit-${env.NODE_NAME}-pytest.xml"
+                                    publishHTML([allowMissing: true, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/coverage', reportFiles: 'index.html', reportName: 'Coverage', reportTitles: ''])
                                 }
                             }
                         }
-                    }
-                }
-                stage("MyPy"){
-                    when{
-                        equals expected: true, actual: params.ADDITIONAL_TESTS
-                    }
-                    steps{
-                        dir("source") {
-                            bat "${WORKSPACE}\\venv\\Scripts\\mypy.exe -p hathi_validate --junit-xml=${WORKSPACE}/reports/junit-${env.NODE_NAME}-mypy.xml --html-report ${WORKSPACE}/reports/mypy_html"
+                        stage("Run Tox"){
+                            environment{
+                                PATH = "${WORKSPACE}\\venv\\Scripts;${tool 'CPython-3.6'};${tool 'CPython-3.7'};$PATH"
+                            }
+                            when{
+                                equals expected: true, actual: params.TEST_RUN_TOX
+                            }
+                            steps {
+                                dir("source"){
+                                    script{
+                                        try{
+                                            bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox -vv"
+                                        } catch (exc) {
+                                            bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox --recreate -vv"
+                                        }
+                                    }
+                                }
+                            }
                         }
-                    }
-                    post{
-                        always {
-                            junit "reports/junit-${env.NODE_NAME}-mypy.xml"
-                            publishHTML([allowMissing: true, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/mypy_html', reportFiles: 'index.html', reportName: 'MyPy', reportTitles: ''])
+                        stage("MyPy"){
+                            when{
+                                equals expected: true, actual: params.ADDITIONAL_TESTS
+                            }
+                            steps{
+                                dir("source") {
+                                    bat "${WORKSPACE}\\venv\\Scripts\\mypy.exe -p hathi_validate --junit-xml=${WORKSPACE}/reports/junit-${env.NODE_NAME}-mypy.xml --html-report ${WORKSPACE}/reports/mypy_html"
+                                }
+                            }
+                            post{
+                                always {
+                                    junit "reports/junit-${env.NODE_NAME}-mypy.xml"
+                                    publishHTML([allowMissing: true, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/mypy_html', reportFiles: 'index.html', reportName: 'MyPy', reportTitles: ''])
+                                }
+                            }
                         }
-                    }
-                }
-                stage("Documentation"){
-                    when{
-                        equals expected: true, actual: params.ADDITIONAL_TESTS
-                    }
-                    steps{
-                        dir("source"){
-                            bat "${WORKSPACE}\\venv\\Scripts\\sphinx-build.exe -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -v"
-                        }
-                    }
+                        stage("Documentation"){
+                            when{
+                                equals expected: true, actual: params.ADDITIONAL_TESTS
+                            }
+                            steps{
+                                dir("source"){
+                                    bat "${WORKSPACE}\\venv\\Scripts\\sphinx-build.exe -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -v"
+                                }
+                            }
 
+                        }
+                    }
                 }
             }
         }
         stage("Packaging") {
-            parallel {
-                stage("Source and Wheel formats"){
+            stages{
+                stage("Installing Packaging Tools"){
                     steps{
-                        dir("source"){
-                            bat "${WORKSPACE}\\venv\\scripts\\python.exe setup.py sdist --format zip -d ${WORKSPACE}\\dist bdist_wheel -d ${WORKSPACE}\\dist"
-                        }
-                        
-                    }
-                    post{
-                        success{
-                            archiveArtifacts artifacts: "dist/*.whl,dist/*.tar.gz,dist/*.zip", fingerprint: true
-                            stash includes: 'dist/*.*', name: "dist"
-                        }
+                        bat "${WORKSPACE}\\venv\\Scripts\\pip install wheel -r source\\requirements-freeze.txt"
                     }
                 }
-                stage("Windows CX_Freeze MSI"){
-                    steps{
-                        dir("source"){
-                            bat "${WORKSPACE}\\venv\\Scripts\\python cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir ${WORKSPACE}/build/msi --dist-dir ${WORKSPACE}/dist"
-                        }
-                        bat "build\\msi\\hathivalidate.exe --pytest"
+                stage("Building packages"){
 
+                    parallel {
+                        stage("Source and Wheel formats"){
+                            steps{
+                                dir("source"){
+                                    bat "${WORKSPACE}\\venv\\scripts\\python.exe setup.py sdist --format zip -d ${WORKSPACE}\\dist bdist_wheel -d ${WORKSPACE}\\dist"
+                                }
 
-                    }
-                    post{
-                        success{
-                            dir("dist") {
-                                stash includes: "*.msi", name: "msi"
                             }
-                            archiveArtifacts artifacts: "dist/*.msi", fingerprint: true
+                            post{
+                                success{
+                                    archiveArtifacts artifacts: "dist/*.whl,dist/*.tar.gz,dist/*.zip", fingerprint: true
+                                    stash includes: 'dist/*.*', name: "dist"
+                                }
+                            }
                         }
-                        cleanup{
-                            dir("build/msi") {
-                                deleteDir()
+                        stage("Windows CX_Freeze MSI"){
+                            steps{
+                                dir("source"){
+                                    //${WORKSPACE}\\venv\\Scripts\\pip install -r source\\requirements-freeze.txt
+                                    bat "${WORKSPACE}\\venv\\Scripts\\python cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir ${WORKSPACE}/build/msi --dist-dir ${WORKSPACE}/dist"
+                                }
+                                bat "build\\msi\\hathivalidate.exe --pytest"
+
+
+                            }
+                            post{
+                                success{
+                                    dir("dist") {
+                                        stash includes: "*.msi", name: "msi"
+                                    }
+                                    archiveArtifacts artifacts: "dist/*.msi", fingerprint: true
+                                }
+                                cleanup{
+                                    dir("build/msi") {
+                                        deleteDir()
+                                    }
+                                }
                             }
                         }
                     }
@@ -311,7 +312,6 @@ pipeline {
                 stage("Upload to DevPi staging") {
                     steps {
                         bat "pip install devpi-client"
-                        bat "devpi use https://devpi.library.illinois.edu"
                         bat "devpi use https://devpi.library.illinois.edu && devpi login ${env.DEVPI_USR} --password ${env.DEVPI_PSW} && devpi use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging && devpi upload --from-dir dist"
 
                     }
@@ -602,35 +602,10 @@ pipeline {
     post {
         cleanup{
 
-            script {
-//                if(fileExists('source/setup.py')){
-//                    dir("source"){
-//                        try{
-//                            retry(3) {
-//                                bat "${WORKSPACE}\\venv\\Scripts\\python.exe setup.py clean --all"
-//                            }
-//                        } catch (Exception ex) {
-//                            echo "Unable to successfully run clean. Purging source directory."
-//                            deleteDir()
-//                        }
-//                    }
-//                }
-//                bat "dir"
-                if (env.BRANCH_NAME == "master" || env.BRANCH_NAME == "dev"){
-                    withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-                        bat "venv\\Scripts\\devpi.exe login DS_Jenkins --password ${DEVPI_PASSWORD}"
-                        bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
-                    }
-
-                    def devpi_remove_return_code = bat returnStatus: true, script:"venv\\Scripts\\devpi.exe remove -y ${env.PKG_NAME}==${env.PKG_VERSION}"
-                    echo "Devpi remove exited with code ${devpi_remove_return_code}."
-                }
-            }
              cleanWs(
                 deleteDirs: true,
                 patterns: [
                     [pattern: 'dist', type: 'INCLUDE'],
-    //                    [pattern: 'build', type: 'INCLUDE'],
                     [pattern: 'reports', type: 'INCLUDE'],
                     [pattern: 'logs', type: 'INCLUDE'],
                     [pattern: 'certs', type: 'INCLUDE'],
@@ -638,16 +613,7 @@ pipeline {
                     [pattern: "source", type: 'INCLUDE'],
                     [pattern: ".pytest_cache", type: 'INCLUDE']
                     ]
-                )
-//            dir("logs"){
-//                deleteDir()
-//            }
-//            dir("reports"){
-//                deleteDir()
-//            }
-//            dir("build"){
-//                deleteDir()
-//            }
+             )
         }
     }
 }
