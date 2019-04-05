@@ -91,30 +91,6 @@ pipeline {
                        }
                     }
                 }
-//                stage("Cleanup extra dirs"){
-//                    steps{
-//                        dir("reports"){
-//                            deleteDir()
-//                            echo "Cleaned out reports directory"
-//                            bat "dir"
-//                        }
-//                        dir("dist"){
-//                            deleteDir()
-//                            echo "Cleaned out dist directory"
-//                            bat "dir"
-//                        }
-//                        dir("build"){
-//                            deleteDir()
-//                            echo "Cleaned out build directory"
-//                            bat "dir"
-//                        }
-//                        dir("logs"){
-//                            deleteDir()
-//                            echo "Cleaned out logs directory"
-//                            bat "dir"
-//                        }
-//                    }
-//                }
                 stage("Creating virtualenv for building"){
                     steps{
                         echo "Create a virtualenv on ${NODE_NAME}"
@@ -127,14 +103,13 @@ pipeline {
                                 bat "call venv\\Scripts\\python.exe -m pip install -U pip>=18.1 --no-cache-dir"
                             }
                         }
-                        bat """if not exist logs mkdir logs
-                        venv\\Scripts\\pip.exe install devpi-client --upgrade-strategy only-if-needed
-                        venv\\Scripts\\pip.exe install -r source\\requirements.txt -r source\\requirements-dev.txt -r source\\requirements-freeze.txt --upgrade-strategy only-if-needed
-                        venv\\Scripts\\pip.exe install "tox>=3.7,<3.8" mypy lxml pytest pytest-cov flake8 sphinx wheel --upgrade-strategy only-if-needed
-                        venv\\Scripts\\pip.exe list > logs\\pippackages_venv_${NODE_NAME}.log"""
+                        bat """venv\\Scripts\\pip.exe install devpi-client
+                               venv\\Scripts\\pip.exe install -r source\\requirements.txt -r source\\requirements-dev.txt -r source\\requirements-freeze.txt
+                               venv\\Scripts\\pip.exe install "tox>=3.8.2" mypy lxml pytest pytest-cov flake8 sphinx wheel"""
                     }
                     post{
                         always{
+                            bat "(if not exist logs mkdir logs) && venv\\Scripts\\pip.exe list > logs\\pippackages_venv_${NODE_NAME}.log"
                             archiveArtifacts artifacts: "logs/pippackages_venv_*.log", allowEmptyArchive: true
 
                             dir("logs"){
