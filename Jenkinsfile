@@ -108,13 +108,16 @@ pipeline {
                                venv\\Scripts\\pip.exe install sphinx wheel"""
                     }
                     post{
-                        always{
+                        success{
                             bat "(if not exist logs mkdir logs) && venv\\Scripts\\pip.exe list > logs\\pippackages_venv_${NODE_NAME}.log"
                             archiveArtifacts artifacts: "logs/pippackages_venv_*.log", allowEmptyArchive: true
-
-                            dir("logs"){
-                                bat "del pippackages_venv*.log"
-                            }
+                        }
+                        cleanup{
+                            cleanWs(
+                                patterns: [
+                                        [pattern: 'logs/pippackages_venv*.log', type: 'INCLUDE']
+                                    ]
+                                )
                         }
                     }
                 }
