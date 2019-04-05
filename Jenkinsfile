@@ -299,7 +299,6 @@ pipeline {
                 stage("Upload to DevPi staging") {
                     steps {
                         bat "pip install devpi-client"
-                        bat "devpi use https://devpi.library.illinois.edu"
                         bat "devpi use https://devpi.library.illinois.edu && devpi login ${env.DEVPI_USR} --password ${env.DEVPI_PSW} && devpi use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging && devpi upload --from-dir dist"
 
                     }
