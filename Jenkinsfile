@@ -103,7 +103,7 @@ pipeline {
                                 bat "call venv\\Scripts\\python.exe -m pip install -U pip>=18.1 --no-cache-dir"
                             }
                         }
-                        bat """venv\\Scripts\\pip.exe install -r source\\requirements.txt -r source\\requirements-dev.txt -r source\\requirements-freeze.txt
+                        bat """venv\\Scripts\\pip.exe install -r source\\requirements.txt -r source\\requirements-dev.txt
                                venv\\Scripts\\pip.exe install sphinx wheel"""
                     }
                     post{
@@ -239,40 +239,51 @@ pipeline {
             }
         }
         stage("Packaging") {
-            parallel {
-                stage("Source and Wheel formats"){
+            stages{
+                stage("Installing Packaging Tools"){
                     steps{
-                        dir("source"){
-                            bat "${WORKSPACE}\\venv\\scripts\\python.exe setup.py sdist --format zip -d ${WORKSPACE}\\dist bdist_wheel -d ${WORKSPACE}\\dist"
-                        }
-                        
-                    }
-                    post{
-                        success{
-                            archiveArtifacts artifacts: "dist/*.whl,dist/*.tar.gz,dist/*.zip", fingerprint: true
-                            stash includes: 'dist/*.*', name: "dist"
-                        }
+                        bat "${WORKSPACE}\\venv\\Scripts\\pip install wheel -r source\\requirements-freeze.txt"
                     }
                 }
-                stage("Windows CX_Freeze MSI"){
-                    steps{
-                        dir("source"){
-                            bat "${WORKSPACE}\\venv\\Scripts\\python cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir ${WORKSPACE}/build/msi --dist-dir ${WORKSPACE}/dist"
-                        }
-                        bat "build\\msi\\hathivalidate.exe --pytest"
+                stage("Building packages"){
 
+                    parallel {
+                        stage("Source and Wheel formats"){
+                            steps{
+                                dir("source"){
+                                    bat "${WORKSPACE}\\venv\\scripts\\python.exe setup.py sdist --format zip -d ${WORKSPACE}\\dist bdist_wheel -d ${WORKSPACE}\\dist"
+                                }
 
-                    }
-                    post{
-                        success{
-                            dir("dist") {
-                                stash includes: "*.msi", name: "msi"
                             }
-                            archiveArtifacts artifacts: "dist/*.msi", fingerprint: true
+                            post{
+                                success{
+                                    archiveArtifacts artifacts: "dist/*.whl,dist/*.tar.gz,dist/*.zip", fingerprint: true
+                                    stash includes: 'dist/*.*', name: "dist"
+                                }
+                            }
                         }
-                        cleanup{
-                            dir("build/msi") {
-                                deleteDir()
+                        stage("Windows CX_Freeze MSI"){
+                            steps{
+                                dir("source"){
+                                    //${WORKSPACE}\\venv\\Scripts\\pip install -r source\\requirements-freeze.txt
+                                    bat "${WORKSPACE}\\venv\\Scripts\\python cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir ${WORKSPACE}/build/msi --dist-dir ${WORKSPACE}/dist"
+                                }
+                                bat "build\\msi\\hathivalidate.exe --pytest"
+
+
+                            }
+                            post{
+                                success{
+                                    dir("dist") {
+                                        stash includes: "*.msi", name: "msi"
+                                    }
+                                    archiveArtifacts artifacts: "dist/*.msi", fingerprint: true
+                                }
+                                cleanup{
+                                    dir("build/msi") {
+                                        deleteDir()
+                                    }
+                                }
                             }
                         }
                     }
