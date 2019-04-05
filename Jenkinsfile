@@ -105,7 +105,7 @@ pipeline {
                         }
                         bat """venv\\Scripts\\pip.exe install devpi-client
                                venv\\Scripts\\pip.exe install -r source\\requirements.txt -r source\\requirements-dev.txt -r source\\requirements-freeze.txt
-                               venv\\Scripts\\pip.exe install "tox>=3.8.2" mypy lxml pytest pytest-cov flake8 sphinx wheel"""
+                               venv\\Scripts\\pip.exe install sphinx wheel"""
                     }
                     post{
                         always{
@@ -159,10 +159,15 @@ pipeline {
         }
         stage("Tests") {
             stages{
+                stage("Installing Python Testing Packages"){
+                    steps{
+                        bat(
+                            script: 'venv\\Scripts\\pip.exe install "tox>=3.8.2" mypy lxml pytest pytest-cov flake8',
+                            label: "Install test packages"
+                            )
+                    }
+                }
                 stage("Run tests"){
-
-
-
                     parallel {
                         stage("PyTest"){
                             when {
