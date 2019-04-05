@@ -103,8 +103,7 @@ pipeline {
                                 bat "call venv\\Scripts\\python.exe -m pip install -U pip>=18.1 --no-cache-dir"
                             }
                         }
-                        bat """venv\\Scripts\\pip.exe install devpi-client
-                               venv\\Scripts\\pip.exe install -r source\\requirements.txt -r source\\requirements-dev.txt -r source\\requirements-freeze.txt
+                        bat """venv\\Scripts\\pip.exe install -r source\\requirements.txt -r source\\requirements-dev.txt -r source\\requirements-freeze.txt
                                venv\\Scripts\\pip.exe install sphinx wheel"""
                     }
                     post{
