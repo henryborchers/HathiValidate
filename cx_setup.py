@@ -72,7 +72,7 @@ if os.path.exists(MSVC):
 build_exe_options = {
     "includes": ["queue", "atexit", "appdirs", 'pkg_resources'] + pytest.freeze_includes(),
     "include_msvcr": True,
-    "packages": ["os", "lxml", "packaging", "six", "appdirs", "hathi_validate", "setuptools", "html"],
+    "packages": ["os", "lxml", "packaging", "six", "appdirs", "hathi_validate", "setuptools", "html", "importlib_metadata"],
     "excludes": ["tkinter"],
     "include_files": INCLUDE_FILES,
 
