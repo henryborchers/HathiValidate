@@ -166,7 +166,7 @@ pipeline {
                 stage("Installing Python Testing Packages"){
                     steps{
                         bat(
-                            script: 'venv\\Scripts\\pip.exe install "tox>=3.8.2" pytest-runner mypy lxml pytest pytest-cov flake8',
+                            script: 'venv\\Scripts\\pip.exe install "tox>=3.8.2,>3.10" pytest-runner mypy lxml pytest pytest-cov flake8',
                             label : "Install test packages"
                             )
                     }
