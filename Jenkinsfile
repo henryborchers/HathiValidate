@@ -59,7 +59,6 @@ pipeline {
         booleanParam(name: "DEPLOY_DEVPI", defaultValue: false, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
         booleanParam(name: "DEPLOY_DEVPI_PRODUCTION", defaultValue: false, description: "Deploy to https://devpi.library.illinois.edu/production/release")
         booleanParam(name: "DEPLOY_HATHI_TOOL_BETA", defaultValue: false, description: "Deploy standalone to \\\\storage.library.illinois.edu\\HathiTrust\\Tools\\beta\\")
-        booleanParam(name: "DEPLOY_SCCM", defaultValue: false, description: "Request deployment of MSI installer to SCCM")
         booleanParam(name: "DEPLOY_DOCS", defaultValue: false, description: "Update online documentation")
         string(name: 'URL_SUBFOLDER', defaultValue: "hathi_validate", description: 'The directory that the docs should be saved under')
     }
@@ -244,7 +243,7 @@ pipeline {
             stages{
                 stage("Installing Packaging Tools"){
                     steps{
-                        bat "${WORKSPACE}\\venv\\Scripts\\pip install wheel -r source\\requirements-freeze.txt"
+                        bat "${WORKSPACE}\\venv\\Scripts\\pip install wheel"
                     }
                 }
                 stage("Building packages"){
@@ -261,30 +260,6 @@ pipeline {
                                 success{
                                     archiveArtifacts artifacts: "dist/*.whl,dist/*.tar.gz,dist/*.zip", fingerprint: true
                                     stash includes: 'dist/*.*', name: "dist"
-                                }
-                            }
-                        }
-                        stage("Windows CX_Freeze MSI"){
-                            steps{
-                                dir("source"){
-                                    //${WORKSPACE}\\venv\\Scripts\\pip install -r source\\requirements-freeze.txt
-                                    bat "${WORKSPACE}\\venv\\Scripts\\python cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir ${WORKSPACE}/build/msi --dist-dir ${WORKSPACE}/dist"
-                                }
-                                bat "build\\msi\\hathivalidate.exe --pytest"
-
-
-                            }
-                            post{
-                                success{
-                                    dir("dist") {
-                                        stash includes: "*.msi", name: "msi"
-                                    }
-                                    archiveArtifacts artifacts: "dist/*.msi", fingerprint: true
-                                }
-                                cleanup{
-                                    dir("build/msi") {
-                                        deleteDir()
-                                    }
                                 }
                             }
                         }
@@ -493,109 +468,7 @@ pipeline {
                         }
                     }
                 }
-                stage("Deploy standalone to Hathi tools Beta"){
-                    when {
-                        allOf{
-                            equals expected: true, actual: params.DEPLOY_HATHI_TOOL_BETA
-                            equals expected: true, actual: params.PACKAGE_WINDOWS_STANDALONE
-                        }
-                    }
-                    steps {
-                        unstash "standalone_installer"
-                        input 'Update standalone to //storage.library.illinois.edu/HathiTrust/Tools/beta/?'
-                        cifsPublisher(
-                                    publishers: [[
-                                        configName: 'hathitrust tools',
-                                        transfers: [[
-                                            cleanRemote: false,
-                                            excludes: '',
-                                            flatten: false,
-                                            makeEmptyDirs: false,
-                                            noDefaultExcludes: false,
-                                            patternSeparator: '[, ]+',
-                                            remoteDirectory: 'beta',
-                                            remoteDirectorySDF: false,
-                                            removePrefix: '',
-                                            sourceFiles: '*.msi'
-                                            ]],
-                                        usePromotionTimestamp: false,
-                                        useWorkspaceInPromotion: false,
-                                        verbose: false
-                                        ]]
-                                )
-                    }
-                }
 
-                stage("Deploy Standalone Build to SCCM") {
-                    when {
-                        allOf{
-                            equals expected: true, actual: params.DEPLOY_SCCM
-                            equals expected: true, actual: params.PACKAGE_WINDOWS_STANDALONE
-                            branch "master"
-                        }
-                        // expression { params.RELEASE == "Release_to_devpi_and_sccm"}
-                    }
-
-                    steps {
-                        unstash "msi"
-                        unstash "Deployment"
-                        script{
-                            // def name = bat(returnStdout: true, script: "@${tool 'CPython-3.6'}\\python setup.py --name").trim()
-                            def msi_files = findFiles glob: '*.msi'
-
-                            def deployment_request = requestDeploy yaml: "deployment.yml", file_name: msi_files[0]
-                            cifsPublisher(
-                                publishers: [[
-                                    configName: 'SCCM Staging',
-                                    transfers: [[
-                                        cleanRemote: false,
-                                        excludes: '',
-                                        flatten: false,
-                                        makeEmptyDirs: false,
-                                        noDefaultExcludes: false,
-                                        patternSeparator: '[, ]+',
-                                        remoteDirectory: '',
-                                        remoteDirectorySDF: false,
-                                        removePrefix: '',
-                                        sourceFiles: '*.msi'
-                                        ]],
-                                    usePromotionTimestamp: false,
-                                    useWorkspaceInPromotion: false,
-                                    verbose: false
-                                    ]]
-                                )
-
-                            input("Deploy to production?")
-                            writeFile file: "deployment_request.txt", text: deployment_request
-                            echo deployment_request
-                            cifsPublisher(
-                                publishers: [[
-                                    configName: 'SCCM Upload',
-                                    transfers: [[
-                                        cleanRemote: false,
-                                        excludes: '',
-                                        flatten: false,
-                                        makeEmptyDirs: false,
-                                        noDefaultExcludes: false,
-                                        patternSeparator: '[, ]+',
-                                        remoteDirectory: '',
-                                        remoteDirectorySDF: false,
-                                        removePrefix: '',
-                                        sourceFiles: '*.msi'
-                                        ]],
-                                    usePromotionTimestamp: false,
-                                    useWorkspaceInPromotion: false,
-                                    verbose: false
-                                    ]]
-                            )
-                        }
-                    }
-                    post {
-                        success {
-                            archiveArtifacts artifacts: "deployment_request.txt"
-                        }
-                    }
-                }
             }
         }
     }

@@ -1,5 +1,0 @@
-cx_Freeze
-six
-appdirs
-packaging
-importlib_metadata
