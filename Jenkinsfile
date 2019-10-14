@@ -52,8 +52,6 @@ pipeline {
     parameters {
         booleanParam(name: "FRESH_WORKSPACE", defaultValue: false, description: "Purge workspace before staring and checking out source")
         string(name: "PROJECT_NAME", defaultValue: "Hathi Validate", description: "Name given to the project")
-        booleanParam(name: "UNIT_TESTS", defaultValue: true, description: "Run Automated Unit Tests")
-        booleanParam(name: "ADDITIONAL_TESTS", defaultValue: true, description: "Run additional tests")
         booleanParam(name: "TEST_RUN_TOX", defaultValue: true, description: "Run Tox Tests")
         booleanParam(name: "DEPLOY_DEVPI", defaultValue: false, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
         booleanParam(name: "DEPLOY_DEVPI_PRODUCTION", defaultValue: false, description: "Deploy to https://devpi.library.illinois.edu/production/release")
@@ -175,9 +173,6 @@ pipeline {
                 stage("Run tests"){
                     parallel {
                         stage("PyTest"){
-                            when {
-                                equals expected: true, actual: params.UNIT_TESTS
-                            }
                             steps{
                                 dir("source"){
                                     bat "${WORKSPACE}\\venv\\Scripts\\python -m pytest --junitxml=${WORKSPACE}/reports/junit-${env.NODE_NAME}-pytest.xml --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/coverage/ --cov=hathi_validate" //  --basetemp={envtmpdir}"
@@ -211,9 +206,6 @@ pipeline {
                             }
                         }
                         stage("MyPy"){
-                            when{
-                                equals expected: true, actual: params.ADDITIONAL_TESTS
-                            }
                             steps{
                                 dir("source") {
                                     bat "${WORKSPACE}\\venv\\Scripts\\mypy.exe -p hathi_validate --junit-xml=${WORKSPACE}/reports/junit-${env.NODE_NAME}-mypy.xml --html-report ${WORKSPACE}/reports/mypy_html"
@@ -227,9 +219,6 @@ pipeline {
                             }
                         }
                         stage("Documentation"){
-                            when{
-                                equals expected: true, actual: params.ADDITIONAL_TESTS
-                            }
                             steps{
                                 dir("source"){
                                     bat "${WORKSPACE}\\venv\\Scripts\\sphinx-build.exe -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -v"
