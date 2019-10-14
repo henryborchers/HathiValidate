@@ -31,7 +31,7 @@ def test_devpi(DevpiPath, DevpiIndex, packageName, PackageRegex, certsDir="certs
 
 pipeline {
     agent {
-        label "Windows"
+        label "Windows && Python3"
     }
     options {
         disableConcurrentBuilds()  //each branch has 1 job running at a time
@@ -44,7 +44,6 @@ pipeline {
     }
 
     environment {
-        PATH = "${tool 'CPython-3.6'};${tool 'CPython-3.7'};$PATH"
         PKG_NAME = pythonPackageName(toolName: "CPython-3.6")
         PKG_VERSION = pythonPackageVersion(toolName: "CPython-3.6")
         DOC_ZIP_FILENAME = "${env.PKG_NAME}-${env.PKG_VERSION}.doc.zip"
