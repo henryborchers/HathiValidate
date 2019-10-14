@@ -91,6 +91,9 @@ pipeline {
                     }
                 }
                 stage("Creating virtualenv for building"){
+                    environment{
+                        PATH = "${tool 'CPython-3.7'};$PATH"
+                    }
                     steps{
                         echo "Create a virtualenv on ${NODE_NAME}"
                         bat(
