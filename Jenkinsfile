@@ -29,6 +29,30 @@ def test_devpi(DevpiPath, DevpiIndex, packageName, PackageRegex, certsDir="certs
     bat "${DevpiPath} test --index ${DevpiIndex} --verbose ${packageName} -s ${PackageRegex} --clientdir ${certsDir} --tox-args=\"-vv\""
 }
 
+def get_package_version(stashName, metadataFile){
+    ws {
+        unstash "${stashName}"
+        script{
+            def props = readProperties interpolate: true, file: "${metadataFile}"
+            deleteDir()
+            return props.Version
+        }
+    }
+}
+
+def get_package_name(stashName, metadataFile){
+    ws {
+        unstash "${stashName}"
+        script{
+            def props = readProperties interpolate: true, file: "${metadataFile}"
+            deleteDir()
+            return props.Name
+        }
+    }
+}
+
+
+
 pipeline {
     agent {
         label "Windows && Python3"
@@ -43,12 +67,6 @@ pipeline {
         cron('@daily')
     }
 
-    environment {
-        PKG_NAME = pythonPackageName(toolName: "CPython-3.6")
-        PKG_VERSION = pythonPackageVersion(toolName: "CPython-3.6")
-        DOC_ZIP_FILENAME = "${env.PKG_NAME}-${env.PKG_VERSION}.doc.zip"
-        DEVPI = credentials("DS_devpi")
-    }
     parameters {
         booleanParam(name: "FRESH_WORKSPACE", defaultValue: false, description: "Purge workspace before staring and checking out source")
         string(name: "PROJECT_NAME", defaultValue: "Hathi Validate", description: "Name given to the project")
@@ -87,6 +105,24 @@ pipeline {
                        }
                     }
                 }
+                stage("Getting Distribution Info"){
+                    environment{
+                        PATH = "${tool 'CPython-3.7'};$PATH"
+                    }
+                    steps{
+                        dir("source"){
+                            bat "python setup.py dist_info"
+                        }
+                    }
+                    post{
+                        success{
+                            dir("source"){
+                                stash includes: "HathiValidate.dist-info/**", name: 'DIST-INFO'
+                                archiveArtifacts artifacts: "HathiValidate.dist-info/**"
+                            }
+                        }
+                    }
+                }
                 stage("Creating virtualenv for building"){
                     environment{
                         PATH = "${tool 'CPython-3.7'};$PATH"
@@ -123,10 +159,6 @@ pipeline {
                 }
             }
             post {
-                success{
-                    bat "tree /A /f >logs/workspace_files_${NODE_NAME}.log"
-//                    }
-                }
                 failure {
                     deleteDir()
                 }
@@ -142,6 +174,10 @@ pipeline {
                     }
                 }
                 stage("Docs"){
+                    environment{
+                        PKG_NAME = get_package_name("DIST-INFO", "HathiValidate.dist-info/METADATA")
+                        PKG_VERSION = get_package_version("DIST-INFO", "HathiValidate.dist-info/METADATA")
+                    }
                     steps{
                         echo "Building docs on ${env.NODE_NAME}"
                             dir("build/lib"){
@@ -154,7 +190,10 @@ pipeline {
                         }
                         success{
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
-                            zip archive: true, dir: "build/docs/html", glob: '', zipFile: "dist/${env.DOC_ZIP_FILENAME}"
+                            script{
+                                def DOC_ZIP_FILENAME = "${env.PKG_NAME}-${env.PKG_VERSION}.doc.zip"
+                                zip archive: true, dir: "build/docs/html", glob: '', zipFile: "dist/${DOC_ZIP_FILENAME}"
+                            }
                         }
                     }
                 }
@@ -208,12 +247,13 @@ pipeline {
                         stage("MyPy"){
                             steps{
                                 dir("source") {
-                                    bat "${WORKSPACE}\\venv\\Scripts\\mypy.exe -p hathi_validate --junit-xml=${WORKSPACE}/reports/junit-${env.NODE_NAME}-mypy.xml --html-report ${WORKSPACE}/reports/mypy_html"
+                                    catchError(buildResult: "SUCCESS", message: 'MyPy found issues', stageResult: "UNSTABLE") {
+                                        bat "${WORKSPACE}\\venv\\Scripts\\mypy.exe -p hathi_validate --html-report ${WORKSPACE}/reports/mypy_html"
+                                    }
                                 }
                             }
                             post{
                                 always {
-                                    junit "reports/junit-${env.NODE_NAME}-mypy.xml"
                                     publishHTML([allowMissing: true, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/mypy_html', reportFiles: 'index.html', reportName: 'MyPy', reportTitles: ''])
                                 }
                             }
@@ -273,6 +313,9 @@ pipeline {
             }
             environment{
                 PATH = "${WORKSPACE}\\venv\\Scripts;${tool 'CPython-3.6'};${PATH}"
+                PKG_NAME = get_package_name("DIST-INFO", "HathiValidate.dist-info/METADATA")
+                PKG_VERSION = get_package_version("DIST-INFO", "HathiValidate.dist-info/METADATA")
+                DEVPI = credentials("DS_devpi")
             }
             stages{
                 stage("Upload to DevPi staging") {
