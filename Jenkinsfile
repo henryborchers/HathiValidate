@@ -54,13 +54,10 @@ def get_package_name(stashName, metadataFile){
 
 
 pipeline {
-    agent {
-        label "Windows && Python3"
-    }
+    agent none
+
     options {
         disableConcurrentBuilds()  //each branch has 1 job running at a time
-        timeout(60)  // Timeout after 60 minutes. This shouldn't take this long but it hangs for some reason
-        checkoutToSubdirectory("source")
         buildDiscarder logRotator(artifactDaysToKeepStr: '10', artifactNumToKeepStr: '10')
     }
     triggers {
@@ -68,7 +65,6 @@ pipeline {
     }
 
     parameters {
-        booleanParam(name: "FRESH_WORKSPACE", defaultValue: false, description: "Purge workspace before staring and checking out source")
         string(name: "PROJECT_NAME", defaultValue: "Hathi Validate", description: "Name given to the project")
         booleanParam(name: "TEST_RUN_TOX", defaultValue: true, description: "Run Tox Tests")
         booleanParam(name: "DEPLOY_DEVPI", defaultValue: false, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
@@ -79,81 +75,32 @@ pipeline {
     }
     stages {
         stage("Configure") {
+            agent {
+              dockerfile {
+                filename 'ci/docker/build_windows/Dockerfile'
+                label 'Windows&&Docker'
+              }
+            }
             stages{
-                stage("Purge all existing data in workspace"){
-                    when{
-                        equals expected: true, actual: params.FRESH_WORKSPACE
-                    }
-                    steps {
-                        deleteDir()
-                        bat "dir"
-                        echo "Cloning source"
-                        dir("source"){
-                            checkout scm
-                        }
-                    }
-                    post{
-                        success {
-                            bat "dir /s /B"
-                        }
-                    }
-                }
                 stage("Stashing important files for later"){
+                    options{
+                        timeout(2)
+                    }
                     steps{
-                       dir("source"){
-                            stash includes: 'deployment.yml', name: "Deployment"
-                       }
+                        stash includes: 'deployment.yml', name: "Deployment"
                     }
                 }
                 stage("Getting Distribution Info"){
-                    environment{
-                        PATH = "${tool 'CPython-3.7'};$PATH"
+                    options{
+                        timeout(4)
                     }
                     steps{
-                        dir("source"){
-                            bat "python setup.py dist_info"
-                        }
+                        bat "python setup.py dist_info"
                     }
                     post{
                         success{
-                            dir("source"){
-                                stash includes: "HathiValidate.dist-info/**", name: 'DIST-INFO'
-                                archiveArtifacts artifacts: "HathiValidate.dist-info/**"
-                            }
-                        }
-                    }
-                }
-                stage("Creating virtualenv for building"){
-                    environment{
-                        PATH = "${tool 'CPython-3.7'};$PATH"
-                    }
-                    steps{
-                        echo "Create a virtualenv on ${NODE_NAME}"
-                        bat(
-                            script: "python -m venv venv",
-                            label: "Create virtualenv at ${WORKSPACE}/venv"
-                        )
-                        script {
-                            try {
-                                bat "call venv\\Scripts\\python.exe -m pip install -U pip>=18.1"
-                            }
-                            catch (exc) {
-                                bat "call venv\\Scripts\\python.exe -m pip install -U pip>=18.1 --no-cache-dir"
-                            }
-                        }
-                        bat "venv\\Scripts\\pip.exe install sphinx -r source\\requirements.txt"
-                    }
-                    post{
-                        success{
-                            bat "(if not exist logs mkdir logs) && venv\\Scripts\\pip.exe list > logs\\pippackages_venv_${NODE_NAME}.log"
-                            archiveArtifacts artifacts: "logs/pippackages_venv_*.log", allowEmptyArchive: true
-                        }
-                        cleanup{
-                            cleanWs(
-                                patterns: [
-                                        [pattern: 'logs/pippackages_venv*.log', type: 'INCLUDE']
-                                    ]
-                                )
+                            stash includes: "HathiValidate.dist-info/**", name: 'DIST-INFO'
+                            archiveArtifacts artifacts: "HathiValidate.dist-info/**"
                         }
                     }
                 }
@@ -165,12 +112,21 @@ pipeline {
             }
         }
         stage("Build"){
+            agent {
+                  dockerfile {
+                    filename 'ci/docker/build_windows/Dockerfile'
+                    label 'Windows&&Docker'
+                  }
+                }
+            options{
+                timeout(4)
+            }
+
             stages{
                 stage("Python Package"){
                     steps {
-                        dir("source"){
-                            bat "${WORKSPACE}\\venv\\Scripts\\python.exe setup.py build -b ${WORKSPACE}\\build"
-                        }
+                        bat "(if not exist logs mkdir logs)"
+                        bat "python.exe setup.py build -b ${WORKSPACE}\\build"
                     }
                 }
                 stage("Docs"){
@@ -181,7 +137,7 @@ pipeline {
                     steps{
                         echo "Building docs on ${env.NODE_NAME}"
                             dir("build/lib"){
-                                bat "${WORKSPACE}\\venv\\Scripts\\sphinx-build.exe -b html ${WORKSPACE}\\source\\docs\\source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\doctrees -w ${WORKSPACE}/logs/build_sphinx.log"
+                                bat "sphinx-build.exe -b html ${WORKSPACE}\\docs\\source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\doctrees -w ${WORKSPACE}/logs/build_sphinx.log"
                             }
                     }
                     post{
@@ -193,29 +149,41 @@ pipeline {
                             script{
                                 def DOC_ZIP_FILENAME = "${env.PKG_NAME}-${env.PKG_VERSION}.doc.zip"
                                 zip archive: true, dir: "build/docs/html", glob: '', zipFile: "dist/${DOC_ZIP_FILENAME}"
+                                stash includes: "build/docs/**,dist/${DOC_ZIP_FILENAME}", name: "DOCUMENTATION"
                             }
+                        }
+                        cleanup{
+                            cleanWs notFailBuild: true
                         }
                     }
                 }
             }
         }
         stage("Tests") {
+            agent {
+                  dockerfile {
+                    filename 'ci/docker/build_windows/Dockerfile'
+                    label 'Windows&&Docker'
+                  }
+            }
+            options{
+                timeout(4)
+            }
             stages{
                 stage("Installing Python Testing Packages"){
                     steps{
                         bat(
-                            script: 'venv\\Scripts\\pip.exe install "tox>=3.8.2,<3.10" pytest-runner mypy lxml pytest pytest-cov flake8',
+                            script: 'pip.exe install tox pytest-runner mypy lxml pytest pytest-cov flake8',
                             label : "Install test packages"
                             )
+                        bat "(if not exist logs mkdir logs)"
                     }
                 }
                 stage("Run tests"){
                     parallel {
                         stage("PyTest"){
                             steps{
-                                dir("source"){
-                                    bat "${WORKSPACE}\\venv\\Scripts\\python -m pytest --junitxml=${WORKSPACE}/reports/junit-${env.NODE_NAME}-pytest.xml --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/coverage/ --cov=hathi_validate" //  --basetemp={envtmpdir}"
-                                }
+                                bat "python -m pytest --junitxml=${WORKSPACE}/reports/junit-${env.NODE_NAME}-pytest.xml --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/coverage/ --cov=hathi_validate" //  --basetemp={envtmpdir}"
 
                             }
                             post {
@@ -227,64 +195,66 @@ pipeline {
                         }
                         stage("Run Tox"){
                             environment{
-                                PATH = "${WORKSPACE}\\venv\\Scripts;${tool 'CPython-3.6'};${tool 'CPython-3.7'};$PATH"
+                                TOXENV="py"
                             }
                             when{
                                 equals expected: true, actual: params.TEST_RUN_TOX
                             }
                             steps {
-                                dir("source"){
-                                    script{
-                                        try{
-                                            bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox -vv"
-                                        } catch (exc) {
-                                            bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox --recreate -vv"
-                                        }
+                                script{
+                                    try{
+                                        bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox -vv"
+                                    } catch (exc) {
+                                        bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox --recreate -vv"
                                     }
                                 }
                             }
                         }
                         stage("MyPy"){
                             steps{
-                                dir("source") {
-                                    catchError(buildResult: "SUCCESS", message: 'MyPy found issues', stageResult: "UNSTABLE") {
-                                        bat "${WORKSPACE}\\venv\\Scripts\\mypy.exe -p hathi_validate --html-report ${WORKSPACE}/reports/mypy_html"
-                                    }
+                                catchError(buildResult: "SUCCESS", message: 'MyPy found issues', stageResult: "UNSTABLE") {
+                                    bat "mypy.exe -p hathi_validate --html-report ${WORKSPACE}/reports/mypy_html > ${WORKSPACE}/logs/mypy.log"
                                 }
                             }
                             post{
                                 always {
                                     publishHTML([allowMissing: true, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/mypy_html', reportFiles: 'index.html', reportName: 'MyPy', reportTitles: ''])
+                                    recordIssues tools: [myPy(pattern: 'logs/mypy.log')]
                                 }
                             }
                         }
                         stage("Documentation"){
                             steps{
-                                dir("source"){
-                                    bat "${WORKSPACE}\\venv\\Scripts\\sphinx-build.exe -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -v"
-                                }
+                                bat "sphinx-build.exe -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -v"
                             }
 
                         }
                     }
                 }
             }
+            post{
+                cleanup{
+                    cleanWs notFailBuild: true
+                }
+            }
         }
         stage("Packaging") {
+            agent {
+                  dockerfile {
+                    filename 'ci/docker/build_windows/Dockerfile'
+                    label 'Windows&&Docker'
+                  }
+            }
+            options{
+                timeout(4)
+            }
             stages{
-                stage("Installing Packaging Tools"){
-                    steps{
-                        bat "${WORKSPACE}\\venv\\Scripts\\pip install wheel"
-                    }
-                }
                 stage("Building packages"){
 
                     parallel {
                         stage("Source and Wheel formats"){
                             steps{
-                                dir("source"){
-                                    bat "${WORKSPACE}\\venv\\scripts\\python.exe setup.py sdist --format zip -d ${WORKSPACE}\\dist bdist_wheel -d ${WORKSPACE}\\dist"
-                                }
+                                bat "python.exe setup.py sdist --format zip -d ${WORKSPACE}\\dist bdist_wheel -d ${WORKSPACE}\\dist"
 
                             }
                             post{
@@ -297,6 +267,11 @@ pipeline {
                     }
                 }
             }
+            post{
+                cleanup{
+                    cleanWs notFailBuild: true
+                }
+            }
         }
         stage("Deploying to Devpi") {
             when {
@@ -307,25 +282,33 @@ pipeline {
                         equals expected: "dev", actual: env.BRANCH_NAME
                     }
                 }
+                beforeAgent true
             }
             options{
                 timestamps()
             }
             environment{
-                PATH = "${WORKSPACE}\\venv\\Scripts;${tool 'CPython-3.6'};${PATH}"
+                PATH = "${tool 'CPython-3.6'};${PATH}"
                 PKG_NAME = get_package_name("DIST-INFO", "HathiValidate.dist-info/METADATA")
                 PKG_VERSION = get_package_version("DIST-INFO", "HathiValidate.dist-info/METADATA")
                 DEVPI = credentials("DS_devpi")
             }
+            agent {
+                label 'Windows&&Python3&&!aws'
+            }
             stages{
                 stage("Upload to DevPi staging") {
                     steps {
-                        bat "pip install devpi-client"
-                        bat "devpi use https://devpi.library.illinois.edu && devpi login ${env.DEVPI_USR} --password ${env.DEVPI_PSW} && devpi use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging && devpi upload --from-dir dist"
+                        unstash "dist"
+                        unstash "DOCUMENTATION"
+                        bat "python -m venv venv"
+                        bat "venv\\Scripts\\pip install devpi-client"
+                        bat "venv\\Scripts\\devpi use https://devpi.library.illinois.edu && venv\\Scripts\\devpi login ${env.DEVPI_USR} --password ${env.DEVPI_PSW} && venv\\Scripts\\devpi use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging && venv\\Scripts\\devpi upload --from-dir dist"
 
                     }
                 }
                 stage("Test DevPi packages") {
+
                     parallel {
                         stage("Source Distribution: .zip") {
                             agent {
@@ -337,7 +320,7 @@ pipeline {
                                 skipDefaultCheckout(true)
                             }
                             environment {
-                                PATH = "${tool 'CPython-3.6'};${tool 'CPython-3.7'};$PATH"
+                                PATH = "${WORKSPACE}\\venv\\Scripts\\;${tool 'CPython-3.6'};${tool 'CPython-3.7'};$PATH"
                             }
                             stages{
                                 stage("Building DevPi Testing venv for .zip package"){
@@ -372,9 +355,7 @@ pipeline {
 
                             post {
                                 cleanup{
-                                        cleanWs deleteDirs: true, patterns: [
-                                            [pattern: 'certs', type: 'INCLUDE']
-                                        ]
+                                        cleanWs notFailBuild: true
                                     }
                             }
 
@@ -471,10 +452,15 @@ pipeline {
         stage("Deploy"){
             parallel {
                 stage("Deploy Online Documentation") {
+                    agent{
+                        label "!aws"
+                    }
                     when{
                         equals expected: true, actual: params.DEPLOY_DOCS
+                        beforeAgent true
                     }
                     steps{
+                        unstash "DOCUMENTATION"
                         dir("build/docs/html/"){
                             input 'Update project documentation?'
                             sshPublisher(
@@ -506,21 +492,24 @@ pipeline {
             }
         }
     }
-    post {
-        cleanup{
+    // post {
+    //     cleanup{
 
-             cleanWs(
-                deleteDirs: true,
-                patterns: [
-                    [pattern: 'dist', type: 'INCLUDE'],
-                    [pattern: 'reports', type: 'INCLUDE'],
-                    [pattern: 'logs', type: 'INCLUDE'],
-                    [pattern: 'certs', type: 'INCLUDE'],
-                    [pattern: '*tmp', type: 'INCLUDE'],
-                    [pattern: "source", type: 'INCLUDE'],
-                    [pattern: ".pytest_cache", type: 'INCLUDE']
-                    ]
-             )
-        }
-    }
+    //          cleanWs(
+    //             deleteDirs: true,
+    //             patterns: [
+    //                 [pattern: 'dist', type: 'INCLUDE'],
+    //                 [pattern: 'reports', type: 'INCLUDE'],
+    //                 [pattern: 'logs', type: 'INCLUDE'],
+    //                 [pattern: 'certs', type: 'INCLUDE'],
+    //                 [pattern: '*tmp', type: 'INCLUDE'],
+    //                 [pattern: "source", type: 'INCLUDE'],
+    //                 [pattern: "source/.git", type: 'EXCLUDE'],
+    //                 [pattern: ".tox", type: 'INCLUDE'],
+    //                 [pattern: "build", type: 'INCLUDE'],
+    //                 [pattern: ".pytest_cache", type: 'INCLUDE']
+    //                 ]
+    //          )
+    //     }
+    // }
 }
