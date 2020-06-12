@@ -44,7 +44,7 @@ def CONFIGURATIONS = [
                         ]
                     ],
                     pkgRegex: [
-                        wheel: "*cp36*.whl",
+                        wheel: "*.whl",
                         sdist: "*.zip"
                     ]
                 ],
