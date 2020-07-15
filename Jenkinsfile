@@ -682,43 +682,43 @@ pipeline {
                         }
                     }
                 }
-//                 stage("Deploy to DevPi Production") {
-//                     when {
-//                         allOf{
-//                             equals expected: true, actual: params.DEPLOY_DEVPI_PRODUCTION
-//                             branch "master"
-//                         }
-//                         beforeAgent true
-//                     }
-//                     agent {
-//                         dockerfile {
-//                             filename 'ci/docker/python/linux/Dockerfile'
-//                             label 'linux&&docker'
-//                             additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
-//                         }
-//                     }
-//                     steps {
-//                         script {
-//                             unstash "DIST-INFO"
-//                             def props = readProperties interpolate: true, file: 'HathiValidate.dist-info/METADATA'
-//                             try{
-//                                 timeout(30) {
-//                                     input "Release ${props.Name} ${props.Version} (https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging/${props.Name}/${props.Version}) to DevPi Production? "
-//                                 }
-//                                 sh "devpi use https://devpi.library.illinois.edu --clientdir ${WORKSPACE}/devpi  && devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir ${WORKSPACE}/devpi && devpi use /DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}/devpi && devpi push --index ${env.DEVPI_USR}/${env.BRANCH_NAME}_staging ${props.Name}==${props.Version} production/release --clientdir ${WORKSPACE}/devpi"
-//                             } catch(err){
-//                                 echo "User response timed out. Packages not deployed to DevPi Production."
-//                             }
-//                         }
-//                     }
-//                 }
+                stage("Deploy to DevPi Production") {
+                    when {
+                        allOf{
+                            equals expected: true, actual: params.DEPLOY_DEVPI_PRODUCTION
+                            branch "master"
+                        }
+                        beforeAgent true
+                    }
+                    agent {
+                        dockerfile {
+                            filename 'ci/docker/python/linux/Dockerfile'
+                            label 'linux&&docker'
+                            additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
+                        }
+                    }
+                    steps {
+                        script {
+                            unstash "DIST-INFO"
+                            def props = readProperties interpolate: true, file: 'HathiValidate.dist-info/METADATA'
+                            try{
+                                timeout(30) {
+                                    input "Release ${props.Name} ${props.Version} (https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging/${props.Name}/${props.Version}) to DevPi Production? "
+                                }
+                                sh "devpi use https://devpi.library.illinois.edu --clientdir ${WORKSPACE}/devpi  && devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir ${WORKSPACE}/devpi && devpi use /DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}/devpi && devpi push --index ${env.DEVPI_USR}/${env.BRANCH_NAME}_staging ${props.Name}==${props.Version} production/release --clientdir ${WORKSPACE}/devpi"
+                            } catch(err){
+                                echo "User response timed out. Packages not deployed to DevPi Production."
+                            }
+                        }
+                    }
+                }
             }
             post{
                 success{
                     node('linux && docker') {
                         checkout scm
                         script{
-                            docker.build("hathivalidate:devpi.${env.BUILD_ID}",'-f ./ci/docker/python/linux/Dockerfile --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) .').inside{
+                            docker.build("hathivalidate:devpi",'-f ./ci/docker/python/linux/Dockerfile --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) .').inside{
                                 unstash "DIST-INFO"
                                 def props = readProperties interpolate: true, file: 'HathiValidate.dist-info/METADATA'
                                 sh(
@@ -734,7 +734,7 @@ pipeline {
                 cleanup{
                     node('linux && docker') {
                        script{
-                            docker.build("hathivalidate:devpi.${env.BUILD_ID}",'-f ./ci/docker/python/linux/Dockerfile --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) .').inside{
+                            docker.build("hathivalidate:devpi",'-f ./ci/docker/python/linux/Dockerfile --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) .').inside{
                                 unstash "DIST-INFO"
                                 def props = readProperties interpolate: true, file: 'HathiValidate.dist-info/METADATA'
                                 sh(
