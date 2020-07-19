@@ -24,14 +24,14 @@ def CONFIGURATIONS = [
                         build: [
                             dockerfile: [
                                 filename: 'ci/docker/python/windows/Dockerfile',
-                                label: 'Windows&&Docker',
+                                label: 'windows && docker',
                                 additionalBuildArgs: '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.6-windowsservercore'
                             ]
                         ],
                         test:[
                             dockerfile: [
                                 filename: 'ci/docker/python/windows/Dockerfile',
-                                label: 'Windows&&Docker',
+                                label: 'windows && docker',
                                 additionalBuildArgs: '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.6-windowsservercore'
                             ]
                         ],
@@ -95,14 +95,14 @@ def CONFIGURATIONS = [
                         build: [
                             dockerfile: [
                                 filename: 'ci/docker/python/windows/Dockerfile',
-                                label: 'Windows&&Docker',
+                                label: 'windows && docker',
                                 additionalBuildArgs: '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.7'
                             ]
                         ],
                         test: [
                             dockerfile: [
                                 filename: 'ci/docker/python/windows/Dockerfile',
-                                label: 'Windows&&Docker',
+                                label: 'windows && docker',
                                 additionalBuildArgs: '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.7'
                             ]
                         ],
@@ -166,7 +166,7 @@ def CONFIGURATIONS = [
                         build: [
                             dockerfile: [
                                 filename: 'ci/docker/python/windows/Dockerfile',
-                                label: 'Windows&&Docker',
+                                label: 'windows && docker',
                                 additionalBuildArgs: '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.8'
                             ]
                         ],
