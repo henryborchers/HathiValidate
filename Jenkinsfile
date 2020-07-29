@@ -275,9 +275,6 @@ pipeline {
     options {
         buildDiscarder logRotator(artifactDaysToKeepStr: '10', artifactNumToKeepStr: '10')
     }
-    triggers {
-        parameterizedCron '@daily % DEPLOY_DEVPI=true; TEST_RUN_TOX=true'
-    }
     parameters {
         string(name: "PROJECT_NAME", defaultValue: "Hathi Validate", description: "Name given to the project")
         booleanParam(name: "TEST_RUN_TOX", defaultValue: false, description: "Run Tox Tests")
