@@ -23,21 +23,21 @@ def CONFIGURATIONS = [
                     agents: [
                         build: [
                             dockerfile: [
-                                filename: 'ci/docker/python/windows/Dockerfile',
+                                filename: 'ci/docker/python/windows/jenkins/Dockerfile',
                                 label: 'windows && docker',
                                 additionalBuildArgs: '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.6-windowsservercore'
                             ]
                         ],
                         test:[
                             dockerfile: [
-                                filename: 'ci/docker/python/windows/Dockerfile',
+                                filename: 'ci/docker/python/windows/jenkins/Dockerfile',
                                 label: 'windows && docker',
                                 additionalBuildArgs: '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.6-windowsservercore'
                             ]
                         ],
                         devpi: [
                             dockerfile: [
-                                filename: 'ci/docker/python/windows/Dockerfile',
+                                filename: 'ci/docker/python/windows/jenkins/Dockerfile',
                                 label: 'windows && docker',
                                 additionalBuildArgs: '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.6-windowsservercore'
                             ]
@@ -52,21 +52,21 @@ def CONFIGURATIONS = [
                     agents: [
                         build: [
                             dockerfile: [
-                                filename: 'ci/docker/python/linux/Dockerfile',
+                                filename: 'ci/docker/python/linux/jenkins/Dockerfile',
                                 label: 'linux&&docker',
                                 additionalBuildArgs: '--build-arg PYTHON_VERSION=3.6 --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
                             ]
                         ],
                         test: [
                             dockerfile: [
-                                filename: 'ci/docker/python/linux/Dockerfile',
+                                filename: 'ci/docker/python/linux/jenkins/Dockerfile',
                                 label: 'linux&&docker',
                                 additionalBuildArgs: '--build-arg PYTHON_VERSION=3.6 --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
                             ]
                         ],
                         devpi: [
                             dockerfile: [
-                                filename: 'ci/docker/python/linux/Dockerfile',
+                                filename: 'ci/docker/python/linux/jenkins/Dockerfile',
                                 label: 'linux&&docker',
                                 additionalBuildArgs: '--build-arg PYTHON_VERSION=3.6 --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
                             ]
@@ -94,21 +94,21 @@ def CONFIGURATIONS = [
                     agents: [
                         build: [
                             dockerfile: [
-                                filename: 'ci/docker/python/windows/Dockerfile',
+                                filename: 'ci/docker/python/windows/jenkins/Dockerfile',
                                 label: 'windows && docker',
                                 additionalBuildArgs: '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.7'
                             ]
                         ],
                         test: [
                             dockerfile: [
-                                filename: 'ci/docker/python/windows/Dockerfile',
+                                filename: 'ci/docker/python/windows/jenkins/Dockerfile',
                                 label: 'windows && docker',
                                 additionalBuildArgs: '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.7'
                             ]
                         ],
                         devpi: [
                             dockerfile: [
-                                filename: 'ci/docker/python/windows/Dockerfile',
+                                filename: 'ci/docker/python/windows/jenkins/Dockerfile',
                                 label: 'windows && docker',
                                 additionalBuildArgs: '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.7'
                             ]
@@ -123,21 +123,21 @@ def CONFIGURATIONS = [
                     agents: [
                         build: [
                             dockerfile: [
-                                filename: 'ci/docker/python/linux/Dockerfile',
+                                filename: 'ci/docker/python/linux/jenkins/Dockerfile',
                                 label: 'linux&&docker',
                                 additionalBuildArgs: '--build-arg PYTHON_VERSION=3.7 --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
                             ]
                         ],
                         test: [
                             dockerfile: [
-                                filename: 'ci/docker/python/linux/Dockerfile',
+                                filename: 'ci/docker/python/linux/jenkins/Dockerfile',
                                 label: 'linux&&docker',
                                 additionalBuildArgs: '--build-arg PYTHON_VERSION=3.7 --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
                             ]
                         ],
                         devpi: [
                             dockerfile: [
-                                filename: 'ci/docker/python/linux/Dockerfile',
+                                filename: 'ci/docker/python/linux/jenkins/Dockerfile',
                                 label: 'linux&&docker',
                                 additionalBuildArgs: '--build-arg PYTHON_VERSION=3.7 --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
                             ]
@@ -165,21 +165,21 @@ def CONFIGURATIONS = [
                     agents: [
                         build: [
                             dockerfile: [
-                                filename: 'ci/docker/python/windows/Dockerfile',
+                                filename: 'ci/docker/python/windows/jenkins/Dockerfile',
                                 label: 'windows && docker',
                                 additionalBuildArgs: '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.8'
                             ]
                         ],
                         test: [
                             dockerfile: [
-                                filename: 'ci/docker/python/windows/Dockerfile',
+                                filename: 'ci/docker/python/windows/jenkins/Dockerfile',
                                 label: 'windows && docker',
                                 additionalBuildArgs: '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.8'
                             ]
                         ],
                         devpi: [
                             dockerfile: [
-                                filename: 'ci/docker/python/windows/Dockerfile',
+                                filename: 'ci/docker/python/windows/jenkins/Dockerfile',
                                 label: 'windows && docker',
                                 additionalBuildArgs: '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.8'
                             ]
@@ -195,21 +195,21 @@ def CONFIGURATIONS = [
                     agents: [
                         build: [
                             dockerfile: [
-                                filename: 'ci/docker/python/linux/Dockerfile',
+                                filename: 'ci/docker/python/linux/jenkins/Dockerfile',
                                 label: 'linux&&docker',
                                 additionalBuildArgs: '--build-arg PYTHON_VERSION=3.8 --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
                             ]
                         ],
                         test: [
                             dockerfile: [
-                                filename: 'ci/docker/python/linux/Dockerfile',
+                                filename: 'ci/docker/python/linux/jenkins/Dockerfile',
                                 label: 'linux&&docker',
                                 additionalBuildArgs: '--build-arg PYTHON_VERSION=3.8 --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
                             ]
                         ],
                         devpi: [
                             dockerfile: [
-                                filename: 'ci/docker/python/linux/Dockerfile',
+                                filename: 'ci/docker/python/linux/jenkins/Dockerfile',
                                 label: 'linux&&docker',
                                 additionalBuildArgs: '--build-arg PYTHON_VERSION=3.8 --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
                             ]
@@ -232,6 +232,9 @@ def CONFIGURATIONS = [
             ]
         ],
     ]
+def get_tox_jobs(){
+    sh "tox --workdir .tox -vv -e py"
+}
 
 def test_devpi(DevpiPath, DevpiIndex, packageName, PackageRegex, certsDir="certs\\"){
 
@@ -267,7 +270,12 @@ def get_package_name(stashName, metadataFile){
     }
 }
 
+def tox
 
+node(){
+    checkout scm
+    tox = load("ci/jenkins/scripts/tox.groovy")
+}
 
 pipeline {
     agent none
@@ -290,7 +298,7 @@ pipeline {
         stage("Getting Distribution Info"){
             agent {
                 dockerfile {
-                    filename 'ci/docker/python/linux/Dockerfile'
+                    filename 'ci/docker/python/linux/jenkins/Dockerfile'
                     label 'linux && docker'
                 }
             }
@@ -311,7 +319,7 @@ pipeline {
                 stage("Python Package"){
                     agent {
                         dockerfile {
-                            filename 'ci/docker/python/linux/Dockerfile'
+                            filename 'ci/docker/python/linux/jenkins/Dockerfile'
                             label 'linux && docker'
                         }
                     }
@@ -324,7 +332,7 @@ pipeline {
                 stage("Docs"){
                     agent {
                         dockerfile {
-                            filename 'ci/docker/python/linux/Dockerfile'
+                            filename 'ci/docker/python/linux/jenkins/Dockerfile'
                             label 'linux && docker'
                         }
                     }
@@ -363,7 +371,7 @@ pipeline {
                 stage("PyTest"){
                     agent {
                         dockerfile {
-                            filename 'ci/docker/python/linux/Dockerfile'
+                            filename 'ci/docker/python/linux/jenkins/Dockerfile'
                             label 'linux && docker'
                         }
                     }
@@ -379,23 +387,30 @@ pipeline {
                     }
                 }
                 stage("Run Tox"){
-                    agent {
-                        dockerfile {
-                            filename 'ci/docker/python/linux/Dockerfile'
-                            label 'linux && docker'
-                        }
-                    }
                     when{
                         equals expected: true, actual: params.TEST_RUN_TOX
                     }
                     steps {
-                        sh "tox --workdir .tox -vv -e py"
+                        script{
+                            def windowsJobs
+                            def linuxJobs
+                            parallel(
+                                "Scanning Tox Environments for Linux":{
+                                    linuxJobs = tox.getToxTestsParallel("Tox Linux", "linux && docker", "ci/docker/python/linux/tox/Dockerfile", "--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL")
+                                },
+                                "Scanning Tox Environments for Windows":{
+                                    windowsJobs = tox.getToxTestsParallel("Tox Windows", "windows && docker", "ci/docker/python/windows/tox/Dockerfile", "--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE")
+                                },
+                                failFast: true
+                            )
+                            parallel(windowsJobs + linuxJobs)
+                        }
                     }
                 }
                 stage("MyPy"){
                     agent {
                         dockerfile {
-                            filename 'ci/docker/python/linux/Dockerfile'
+                            filename 'ci/docker/python/linux/jenkins/Dockerfile'
                             label 'linux && docker'
                         }
                     }
@@ -418,7 +433,7 @@ pipeline {
                 stage("Doctest"){
                     agent {
                         dockerfile {
-                            filename 'ci/docker/python/linux/Dockerfile'
+                            filename 'ci/docker/python/linux/jenkins/Dockerfile'
                             label 'linux && docker'
                         }
                     }
@@ -442,7 +457,7 @@ pipeline {
                 stage("Building Python Distribution Packages"){
                     agent {
                         dockerfile {
-                            filename 'ci/docker/python/linux/Dockerfile'
+                            filename 'ci/docker/python/linux/jenkins/Dockerfile'
                             label 'linux && docker'
                         }
                     }
@@ -600,7 +615,7 @@ pipeline {
                 stage("Deploy to Devpi Staging") {
                     agent {
                         dockerfile {
-                            filename 'ci/docker/python/linux/Dockerfile'
+                            filename 'ci/docker/python/linux/jenkins/Dockerfile'
                             label 'linux && docker'
                             additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
                           }
@@ -711,7 +726,7 @@ pipeline {
                     }
                     agent {
                         dockerfile {
-                            filename 'ci/docker/python/linux/Dockerfile'
+                            filename 'ci/docker/python/linux/jenkins/Dockerfile'
                             label 'linux&&docker'
                             additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
                         }
@@ -737,7 +752,7 @@ pipeline {
                     node('linux && docker') {
                         checkout scm
                         script{
-                            docker.build("hathivalidate:devpi",'-f ./ci/docker/python/linux/Dockerfile --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) .').inside{
+                            docker.build("hathivalidate:devpi",'-f ./ci/docker/python/linux/jenkins/Dockerfile --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) .').inside{
                                 unstash "DIST-INFO"
                                 def props = readProperties interpolate: true, file: 'HathiValidate.dist-info/METADATA'
                                 sh(
@@ -753,7 +768,7 @@ pipeline {
                 cleanup{
                     node('linux && docker') {
                        script{
-                            docker.build("hathivalidate:devpi",'-f ./ci/docker/python/linux/Dockerfile --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) .').inside{
+                            docker.build("hathivalidate:devpi",'-f ./ci/docker/python/linux/jenkins/Dockerfile --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) .').inside{
                                 unstash "DIST-INFO"
                                 def props = readProperties interpolate: true, file: 'HathiValidate.dist-info/METADATA'
                                 sh(
@@ -773,7 +788,7 @@ pipeline {
                 stage("Tagging git Commit"){
                     agent {
                         dockerfile {
-                            filename 'ci/docker/python/linux/Dockerfile'
+                            filename 'ci/docker/python/linux/jenkins/Dockerfile'
                             label 'linux && docker'
                             additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
                         }
